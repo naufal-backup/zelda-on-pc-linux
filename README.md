@@ -111,7 +111,7 @@ the game's tutorial tips show your keys where the game has pictures of the GameP
 
 ## Requirements
 
-- Windows 10 or 11, 64-bit.
+- Windows 10 or 11, 64-bit (this fork also builds and runs on Linux, see below).
 - A graphics card with Vulkan support. What runs Breath of the Wild well in Cemu runs it well here.
 - Your own dump of **The Legend of Zelda: Breath of the Wild** for Wii U, either as folders that contain `code`,
   `content` and `meta` (the format [Dumpling](https://github.com/emiyl/dumpling) writes) or as a `.wua` archive (the
@@ -138,6 +138,36 @@ The installer needs no administrator rights and copies nothing from your game fo
 the program (`data` and `settings.ini` in the installation folder); the uninstaller asks before it removes them.
 
 The first minutes after the first start stutter while the emulator compiles the game's shaders. They are cached.
+
+### Install on Linux
+
+This fork builds and runs on Linux as well (the GitHub Action `Build Linux release` makes the package
+`zelda-on-pc-linux-<version>-linux-x64.tar.gz`).
+
+1. Download the archive from the [Releases](../../releases) page (or from the artifacts of the Action) and unpack it.
+2. Install it: `./install.sh --user` puts everything into your home directory (`~/.local/zelda-on-pc`,
+   `~/.local/bin/zelda-on-pc`, `~/.local/share/applications`) and needs no root rights. `./install.sh` (with `sudo`)
+   installs it for the whole system (`/opt/zelda-on-pc`).
+3. Put the folder of your copy of the game into `~/.local/share/zelda-on-pc/data/settings.ini`:
+
+   ```ini
+   [Game]
+   Path=/home/you/Games/Breath of the Wild
+   ```
+
+   The saves, the settings and the caches live in `~/.local/share/zelda-on-pc/data`.
+
+The keyboard and the mouse are read directly from the devices of the machine (the same way Windows Raw Input does):
+the movement of the mouse is the movement of the device, without the acceleration of the desktop. That needs access to
+the input devices, which the installation with `sudo` gives you (the rule of udev). Without it the events of the window
+are used instead: everything works, but the movement of the mouse is the movement of the pointer of the desktop.
+
+To give the access by hand:
+
+```bash
+sudo cp 99-zelda-on-pc-input.rules /etc/udev/rules.d/
+sudo udevadm control --reload-rules && sudo udevadm trigger --subsystem-match=input
+```
 
 ## Controls
 
@@ -185,6 +215,21 @@ To run straight from the build folder, tell it where the game is (a folder or a 
 [Game]
 Path=D:\Games\Breath of the Wild
 ```
+
+### Building on Linux
+
+The same tree builds on Linux with CMake, Ninja and vcpkg (the dependencies are the ones of the project: wxWidgets,
+GTK3, Vulkan, ...).
+
+```bash
+git clone --recursive https://github.com/naufal-backup/zelda-on-pc-linux.git
+cd zelda-on-pc-linux
+tools/build-linux.sh          # builds bin/ZeldaOnPC_release
+tools/package-linux.sh        # stages the files and makes build/zelda-on-pc-linux-<version>-linux-x64.tar.gz
+```
+
+The GitHub Action `Build Linux release` (`.github/workflows/build-linux.yml`) does the same on every push and puts the
+package into the artifacts of the run (on a tag it also publishes a release).
 
 More in [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md): how the code is laid out, how the game is patched, the developer
 mode and its tools. Cemu's own build notes are in [BUILD.md](BUILD.md).
