@@ -40,6 +40,7 @@ jobs:
             libwayland-dev wayland-protocols \
             libcurl4-openssl-dev libssl-dev libusb-1.0-0-dev \
             libasound2-dev libpulse-dev libudev-dev libdbus-1-dev libfontconfig1-dev \
+            libbluetooth-dev \
             unzip zip
 
       - name: Set up the vcpkg cache
