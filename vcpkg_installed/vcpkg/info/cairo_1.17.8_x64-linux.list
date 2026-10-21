@@ -1,0 +1,5 @@
+x64-linux/
+x64-linux/share/
+x64-linux/share/cairo/
+x64-linux/share/cairo/vcpkg.spdx.json
+x64-linux/share/cairo/vcpkg_abi_info.txt

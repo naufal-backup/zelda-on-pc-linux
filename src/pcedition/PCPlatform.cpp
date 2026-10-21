@@ -104,4 +104,19 @@ namespace pce::Platform
 			cemuLog_log(LogType::Force, "PCE: xdg-open failed for {}", path);
 #endif
 	}
+
+	bool IsDirectoryWritable(const fs::path& folder)
+	{
+		std::error_code ec;
+		if (!fs::is_directory(folder, ec))
+			return false;
+		const fs::path probe = folder / ".zelda-on-pc-write-test";
+		{
+			std::ofstream f(probe, std::ios::binary | std::ios::trunc);
+			if (!f)
+				return false;
+		}
+		fs::remove(probe, ec);
+		return true;
+	}
 }

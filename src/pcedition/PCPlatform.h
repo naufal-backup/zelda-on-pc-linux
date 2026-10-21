@@ -27,4 +27,7 @@ namespace pce::Platform
 
 	// Opens a folder with the file manager of the desktop.
 	void OpenFolder(const fs::path& folder);
+
+	// True when the user can write into the folder.
+	bool IsDirectoryWritable(const fs::path& folder);
 }

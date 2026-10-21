@@ -217,8 +217,9 @@ namespace pce::Input
 				if (ev.value == 2) // the auto repeat of the kernel: the key is already down
 					return;
 				const bool down = ev.value != 0;
-				if (dev.mouse && !dev.keyboard)
+				if (ev.code >= BTN_MISC)
 				{
+					// a button of the mouse
 					const uint16 vk = LinuxButtonToVK(ev.code);
 					if (vk)
 						BackendSetMouseButton(vk, down);

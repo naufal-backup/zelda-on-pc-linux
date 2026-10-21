@@ -586,13 +586,16 @@ namespace pce
 			if (i + 2 >= args.size())
 				return 2;
 			std::vector<uint8> tga;
-			return LocateGame(fs::path(args[i + 1])) && ReadTitleFile(sBase, "meta/iconTex.tga", tga) && Icon::WriteFromTga(tga, fs::path(args[i + 2])) ? 0 : 1;
+			return LocateGame(_utf8ToPath(boost::nowide::narrow(args[i + 1]))) && ReadTitleFile(sBase, "meta/iconTex.tga", tga) &&
+						   Icon::WriteFromTga(tga, _utf8ToPath(boost::nowide::narrow(args[i + 2]))) ?
+					   0 :
+					   1;
 		}
 		for (size_t i = 0; i < args.size(); i++)
 		{
 			if (!boost::iequals(args[i], L"--check-game"))
 				continue;
-			if (i + 1 >= args.size() || !LocateGame(fs::path(args[i + 1])))
+			if (i + 1 >= args.size() || !LocateGame(_utf8ToPath(boost::nowide::narrow(args[i + 1]))))
 				return sDiscWithoutKey.empty() ? 0 : 16; // 16: a disc image is there, its key is not
 			return 1 | (sUpdate.empty() ? 0 : 2) | (sUpdateVersion == kRequiredUpdateVersion ? 4 : 0) | (sAoc.empty() ? 0 : 8);
 		}
@@ -622,7 +625,26 @@ namespace pce
 	fs::path GetDataDir()
 	{
 		// developer instances never share state (saves, settings, caches) with the player's own sessions
-		return sExeDir / (sDevMode ? "data_dev" : "data");
+		if (sDevMode)
+			return sExeDir / "data_dev";
+#ifndef _WIN32
+		// a program that is installed for the whole system cannot write next to itself: the state (the saves, the
+		// settings, the caches) goes into the data folder of the user then
+		const fs::path local = sExeDir / "data";
+		std::error_code ec;
+		if (fs::is_directory(local, ec) && Platform::IsDirectoryWritable(local))
+			return local;
+		if (!fs::exists(local, ec))
+		{
+			fs::create_directories(local, ec);
+			if (!ec && Platform::IsDirectoryWritable(local))
+				return local;
+			fs::remove(local, ec);
+		}
+		return Platform::GetUserDataDir() / "zelda-on-pc" / "data";
+#else
+		return sExeDir / "data";
+#endif
 	}
 
 	void DeterminePaths(const fs::path& exePath, std::set<fs::path>& failedWriteAccess)
@@ -634,9 +656,22 @@ namespace pce
 		ActiveSettings::SetPaths(true, exePath, data, data, data, sExeDir, failedWriteAccess);
 	}
 
+	// the file with the settings of the player (next to the executable, or in the data folder when the program is
+	// installed for the whole system)
+	fs::path GetSettingsPath()
+	{
+		if (sDevMode)
+			return GetDataDir() / "settings.ini";
+#ifndef _WIN32
+		if (!Platform::IsDirectoryWritable(sExeDir))
+			return GetDataDir() / "settings.ini";
+#endif
+		return sExeDir / "settings.ini";
+	}
+
 	void InitBeforeCemu()
 	{
-		LoadSettings(sDevMode ? GetDataDir() / "settings.ini" : sExeDir / "settings.ini");
+		LoadSettings(GetSettingsPath());
 		// locate game
 		for (auto& root : CandidateGameRoots())
 		{
