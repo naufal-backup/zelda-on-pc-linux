@@ -31,7 +31,7 @@ here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 if [ "$mode" = "user" ]; then
   home="$(eval echo ~"$user")"
-  prefix="$home/.local/zelda-on-pc"
+  prefix="$home/.local/share/zelda-on-pc"
   bindir="$home/.local/bin"
   datadir="$home/.local/share"
   launcher="$bindir/zelda-on-pc"
