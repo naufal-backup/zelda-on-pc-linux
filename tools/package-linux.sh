@@ -49,16 +49,25 @@ if [ -d "$BIN/gameProfiles/default" ]; then
 fi
 
 # the replacement system fonts of Cemu, the key prompt font and the community graphic packs
-[ -d "$BIN/resources/sharedFonts" ] && cp -r "$BIN/resources/sharedFonts" "$STAGE/resources/" || true
-[ -f "$BIN/resources/pcedition/External_00.bffnt" ] && cp "$BIN/resources/pcedition/External_00.bffnt" "$STAGE/resources/pcedition/" || true
+mkdir -p "$STAGE/resources/pcedition"
+if [ -d "$BIN/resources/sharedFonts" ]; then
+  cp -r "$BIN/resources/sharedFonts" "$STAGE/resources/"
+fi
+if [ -f "$BIN/resources/pcedition/External_00.bffnt" ]; then
+  cp "$BIN/resources/pcedition/External_00.bffnt" "$STAGE/resources/pcedition/"
+fi
 cp -r "$PACKS" "$STAGE/resources/pcedition/graphicPacks"
 
 # the licences
 cp "$ROOT/LICENSE.txt" "$STAGE/LICENSE.txt"
 cp "$ROOT/installer/THIRD-PARTY-NOTICES.txt" "$STAGE/THIRD-PARTY-NOTICES.txt"
 mkdir -p "$STAGE/licenses"
-[ -f "$ROOT/dependencies/imgui/LICENSE.txt" ] && cp "$ROOT/dependencies/imgui/LICENSE.txt" "$STAGE/licenses/imgui.txt" || true
-[ -f "$ROOT/dependencies/FidelityFX-SDK/LICENSE.txt" ] && cp "$ROOT/dependencies/FidelityFX-SDK/LICENSE.txt" "$STAGE/licenses/FidelityFX-SDK.txt" || true
+if [ -f "$ROOT/dependencies/imgui/LICENSE.txt" ]; then
+  cp "$ROOT/dependencies/imgui/LICENSE.txt" "$STAGE/licenses/imgui.txt"
+fi
+if [ -f "$ROOT/dependencies/FidelityFX-SDK/LICENSE.txt" ]; then
+  cp "$ROOT/dependencies/FidelityFX-SDK/LICENSE.txt" "$STAGE/licenses/FidelityFX-SDK.txt"
+fi
 
 # the launcher of the desktop and the install script
 cp "$ROOT/dist/linux/zelda-on-pc.desktop" "$STAGE/zelda-on-pc.desktop"
