@@ -43,8 +43,8 @@ jobs:
             libbluetooth-dev \
             unzip zip
 
-      - name: Set up the vcpkg cache
-        uses: actions/cache@v4
+      - name: Restore the vcpkg cache
+        uses: actions/cache/restore@v4
         with:
           path: |
             ~/.cache/vcpkg/archives
@@ -92,3 +92,15 @@ jobs:
             build/zelda-on-pc-linux-*-linux-x64.tar.gz
             build/zelda-on-pc-linux-*-linux-x64.tar.gz.sha256
           generate_release_notes: true
+
+      - name: Save the vcpkg cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/.cache/vcpkg/archives
+            ${{ env.VCPKG_ROOT }}/installed
+            ${{ env.VCPKG_ROOT }}/buildtrees
+            ${{ env.VCPKG_ROOT }}/packages
+            build/release/vcpkg_installed
+          key: vcpkg-${{ runner.os }}-${{ hashFiles('vcpkg.json', 'dependencies/vcpkg_overlay_ports/**') }}
