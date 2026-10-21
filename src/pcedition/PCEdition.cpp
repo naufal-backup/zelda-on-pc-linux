@@ -413,15 +413,15 @@ namespace pce
 			// the base game itself was given (folder, archive or disc image): update and DLC are usually right next to it
 			if (ReadLooseTitle(root) || IsArchive(root) || IsDiscImage(root))
 				CollectTitles(root.parent_path(), 1, titles);
-			const GameTitle* base = nullptr;
-			for (auto& t : titles)
-			{
-				if ((uint32)(t.titleId >> 32) == kHighBase)
+			auto findBase = [&titles]() -> const GameTitle* {
+				for (auto& t : titles)
 				{
-					base = &t;
-					break;
+					if ((uint32)(t.titleId >> 32) == kHighBase)
+						return &t;
 				}
-			}
+				return nullptr;
+			};
+			const GameTitle* base = findBase();
 			if (!base)
 				return false;
 			const uint32 region = (uint32)base->titleId;
@@ -432,6 +432,7 @@ namespace pce
 				if (auto t = ReadLooseTitle(cemuTitles / fmt::format("{:08x}", high) / fmt::format("{:08x}", region)))
 					titles.push_back(*t);
 			}
+			// the list may have grown: the pointers into it are not valid any more
 			auto find = [&](uint32 high) -> const GameTitle* {
 				for (auto& t : titles)
 				{
@@ -440,6 +441,9 @@ namespace pce
 				}
 				return nullptr;
 			};
+			base = findBase();
+			if (!base)
+				return false;
 			sBase = *base;
 			sRegion = region;
 			sUpdate = {};
