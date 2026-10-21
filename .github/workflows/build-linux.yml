@@ -17,6 +17,8 @@ jobs:
   build:
     name: Build (Linux x64)
     runs-on: ubuntu-22.04
+    permissions:
+      contents: write # the release of a tag is published with the files of the build
     env:
       VCPKG_ROOT: ${{ github.workspace }}/dependencies/vcpkg
       BUILD_TYPE: Release
