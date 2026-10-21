@@ -27,6 +27,8 @@ namespace pce::Input
 	bool IsFocused();
 	// All keys are released (the window lost the focus).
 	void ReleaseAllKeys();
+	// The native handle of the main window (the backend needs it to know which window has the focus).
+	void* GetMainWindowHandle();
 
 	namespace Backend
 	{

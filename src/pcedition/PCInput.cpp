@@ -1003,6 +1003,11 @@ namespace pce::Input
 		return sFocused.load();
 	}
 
+	void* GetMainWindowHandle()
+	{
+		return sMainWindowHandle.load();
+	}
+
 	void ReleaseAllKeys()
 	{
 		for (auto& k : sKeyDown)

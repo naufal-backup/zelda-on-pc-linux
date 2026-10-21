@@ -21,7 +21,6 @@ namespace pce::Input
 		std::thread sThread;
 		std::atomic<bool> sQuit{false};
 		std::atomic<HWND> sMsgWnd{nullptr};
-		std::atomic<HWND> sMainWnd{nullptr};
 		std::atomic<DWORD> sThreadId{0};
 
 		void LogFocusChange(bool focused)
@@ -42,13 +41,25 @@ namespace pce::Input
 
 		bool ComputeFocus()
 		{
-			HWND main = sMainWnd.load();
+			HWND main = (HWND)GetMainWindowHandle();
 			if (!main)
 				return false;
 			HWND fg = GetForegroundWindow();
 			if (!fg)
 				return false;
 			return fg == main || IsChild(main, fg) || GetAncestor(fg, GA_ROOTOWNER) == main;
+		}
+
+		// the focus state of the game window (updated when it changes)
+		bool EnsureFocus()
+		{
+			const bool focused = ComputeFocus();
+			if (focused != IsFocused())
+			{
+				LogFocusChange(focused);
+				BackendSetFocus(focused);
+			}
+			return focused;
 		}
 
 		void HandleRawInput(HRAWINPUT hri)
@@ -58,6 +69,8 @@ namespace pce::Input
 			if (GetRawInputData(hri, RID_INPUT, buffer, &size, sizeof(RAWINPUTHEADER)) == (UINT)-1)
 				return;
 			const RAWINPUT* ri = (const RAWINPUT*)buffer;
+			if (!EnsureFocus())
+				return;
 			if (ri->header.dwType == RIM_TYPEMOUSE)
 			{
 				const RAWMOUSE& m = ri->data.mouse;
@@ -138,14 +151,8 @@ namespace pce::Input
 					TranslateMessage(&msg);
 					DispatchMessageW(&msg);
 				}
-				const bool focused = ComputeFocus();
-				if (focused != sFocused.load())
-				{
-					sFocused = focused;
-					LogFocusChange(focused);
-					if (!focused)
-						ReleaseAllKeys();
-				}
+				const bool focused = EnsureFocus();
+				(void)focused;
 			}
 			rid[0].dwFlags = RIDEV_REMOVE;
 			rid[0].hwndTarget = nullptr;

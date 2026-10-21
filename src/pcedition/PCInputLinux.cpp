@@ -361,20 +361,19 @@ namespace pce::Input
 			const auto& info = WindowSystem::GetWindowInfo().window_main;
 			if (info.backend != WindowSystem::WindowHandleInfo::Backend::X11 || !info.display || !info.surface)
 				return false;
-			Display* display = (Display*)info.display;
-			int major = 0, minor = 0;
-			if (!XIMultiTouchSupportAvailable(display) && XQueryExtension(display, "XInputExtension", nullptr, nullptr))
-			{
-				if (XOpenDisplay && XIQueryVersion(display, &major, &minor) != BadRequest && major < 2)
-				{
-					cemuLog_log(LogType::Force, "PCInput: XInput2 {}.{} is too old", major, minor);
-					return false;
-				}
-			}
-			Window window = (Window)info.surface;
+			// the events are read from a connection of our own: the connection of the GUI belongs to its thread
 			sX11.display = XOpenDisplay(nullptr);
 			if (!sX11.display)
 				return false;
+			int major = 0, minor = 0;
+			if (XIQueryVersion(sX11.display, &major, &minor) != Success || major < 2)
+			{
+				cemuLog_log(LogType::Force, "PCInput: XInput2 is not available ({}.{})", major, minor);
+				XCloseDisplay(sX11.display);
+				sX11.display = nullptr;
+				return false;
+			}
+			Window window = (Window)info.surface;
 			// the raw keyboard events are needed: the plain key events do not tell left and right apart
 			XIEventMask mask = XI_RawKeyPressMask | XI_RawKeyReleaseMask | XI_RawMotionMask;
 			const int rc = XISelectEvents(sX11.display, window, mask, XIAllDevices);
@@ -498,12 +497,10 @@ namespace pce::Input
 				{
 					usleep(50000);
 				}
-				const bool focused = WindowSystem::GetWindowInfo().app_active;
+				const bool focused = useX11 ? X11IsFocused() : WindowSystem::GetWindowInfo().app_active;
 				if (focused != IsFocused())
 				{
 					BackendSetFocus(focused);
-					if (!focused)
-						ReleaseAllKeys();
 				}
 			}
 #ifdef HAS_X11
