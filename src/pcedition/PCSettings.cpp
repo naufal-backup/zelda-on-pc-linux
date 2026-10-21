@@ -187,6 +187,7 @@ namespace pce
 			Get(m, "Mouse", "InvertY", s.invertY);
 			Get(m, "Mouse", "VelocityWindowMs", s.velocityWindowMs);
 			Get(m, "Mouse", "RawInput", s.rawInput);
+			Get(m, "Mouse", "AimLimit", s.aimLimit);
 			Get(m, "Mouse", "KeyboardCameraSpeed", s.keyCameraSpeed);
 			Get(m, "Movement", "WalkSpeed", s.walkSpeed);
 			Get(m, "Movement", "ParryWithAttack", s.parryWithAttack);
@@ -278,6 +279,7 @@ namespace pce
 		o << "InvertY=" << b(s.invertY) << "\n";
 		o << "VelocityWindowMs=" << s.velocityWindowMs << "\n";
 		o << "RawInput=" << b(s.rawInput) << "\n";
+		o << "AimLimit=" << s.aimLimit << "\n";
 		o << "KeyboardCameraSpeed=" << s.keyCameraSpeed << "\n\n";
 		o << "[Movement]\n";
 		o << "WalkSpeed=" << s.walkSpeed << "\n";

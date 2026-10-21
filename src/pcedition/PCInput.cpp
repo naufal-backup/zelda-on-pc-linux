@@ -1372,7 +1372,13 @@ namespace pce::Input
 		mio.wheel = (ui.map && sPanelHover.load()) ? 0 : wheel;
 		Menus::Update(ui, mio);
 		sPointerMode = mio.pointerMode;
-		const bool gameMenu = mio.pointerMode || ui.scope || ui.cameraRune || ui.anyMenu || ui.inventory || ui.map;
+		// Every screen that takes the game over: while one of them is shown the mouse belongs to the PC layer (the
+		// pointer, its clicks and the PC menus), never to the camera of the game. This does not depend on whether the
+		// pointer found something to point at: a menu whose entries the reader cannot see (the System page, the title
+		// screen, a sub menu) must not leave the camera on the mouse either.
+		const bool menuScreen = ui.title || ui.inventory || ui.map || ui.dialog || ui.choice || ui.cameraDialog || ui.scope || ui.cameraRune || ui.anyMenu;
+		const bool menuOpen = menuScreen || mio.pointerMode;
+		const bool gameMenu = menuOpen || ui.scope || ui.cameraRune || ui.anyMenu || ui.inventory || ui.map;
 		// Esc acts as Back in game menus; on the title screen's main menu it opens the PC settings
 		const bool escIsBack = gameMenu && !(ui.title && !ui.dialog);
 		sGameMenuOpen = escIsBack;
@@ -1407,8 +1413,8 @@ namespace pce::Input
 			if (mio.consumeMouseButtons)
 				wheel = 0;
 		}
-		if (mio.pointerMode)
-			mdx = mdy = 0.0; // the mouse moves the pointer, not the camera
+		if (menuOpen)
+			mdx = mdy = 0.0; // the mouse belongs to the menu, not to the camera of the game
 
 		// developer bridge injection (works without focus)
 		mdx += (double)sDebug.injectMouseDX.exchange(0);
@@ -2038,8 +2044,12 @@ namespace pce::Input
 					double py, px;
 					{
 						std::lock_guard camLock(sCamMutex);
-						sPendingYaw = std::clamp(sPendingYaw + yawDeg, -90.0, 90.0);
-						sPendingPitch = std::clamp(sPendingPitch + pitchDeg, -90.0, 90.0);
+						// the aim (mouse) rotation is hard limited: the camera can not be rotated further than the limit
+						// from its home position (aimLimit in degrees, 0 = unlimited) and hitting the limit simply stops
+						// the rotation (no overshoot, the camera stays where the mouse has had its say)
+						const double aimMax = std::max(1.0, s.aimLimit);
+						sPendingYaw = std::clamp(sPendingYaw + yawDeg, -aimMax, aimMax);
+						sPendingPitch = std::clamp(sPendingPitch + pitchDeg, -aimMax, aimMax);
 						// fresh input: the camera gets two updates to consume it before it is considered stale
 						if (yawDeg != 0.0)
 							sYawAge = 0;
