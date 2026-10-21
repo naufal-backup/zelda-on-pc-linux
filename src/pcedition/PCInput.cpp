@@ -1371,7 +1371,7 @@ namespace pce::Input
 		}
 		mio.wheel = (ui.map && sPanelHover.load()) ? 0 : wheel;
 		Menus::Update(ui, mio);
-		sPointerMode = mio.pointerMode;
+		sPointerMode = menuOpen; // show the OS cursor while any menu is open (even when the pointer screen cannot be detected, e.g. System page, title menu)
 		// Every screen that takes the game over: while one of them is shown the mouse belongs to the PC layer (the
 		// pointer, its clicks and the PC menus), never to the camera of the game. This does not depend on whether the
 		// pointer found something to point at: a menu whose entries the reader cannot see (the System page, the title
