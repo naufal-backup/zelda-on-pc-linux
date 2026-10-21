@@ -58,6 +58,7 @@ namespace pce
 		NCrypto::AesKey sDiscKey{};
 
 		fs::path RoamingAppData();
+		fs::path UserDataDir();
 
 		bool IsDiscImage(const fs::path& p)
 		{

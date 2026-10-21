@@ -725,10 +725,31 @@ namespace pce::Overlay
 		sFonts.small = io.Fonts->AddFontFromMemoryTTF(sFontData.data(), (int)sFontData.size(), (float)fh * 0.72f, &cfg, ranges);
 		if (sKeyFontData.empty())
 		{
+#ifdef _WIN32
 			wchar_t windir[MAX_PATH]{};
 			GetWindowsDirectoryW(windir, MAX_PATH);
 			std::ifstream kf(fs::path(windir) / "Fonts" / "segoeuib.ttf", std::ios::binary);
 			sKeyFontData.assign(std::istreambuf_iterator<char>(kf), {});
+#else
+			// a bold system font for the key caps
+			static const char* kKeyFonts[] = {
+				"/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+				"/usr/share/fonts/TTF/DejaVuSans-Bold.ttf",
+				"/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf",
+				"/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+				"/usr/share/fonts/liberation/LiberationSans-Bold.ttf",
+				"/usr/share/fonts/truetype/freefont/FreeSansBold.ttf",
+			};
+			for (const char* path : kKeyFonts)
+			{
+				std::ifstream kf(path, std::ios::binary);
+				if (!kf)
+					continue;
+				sKeyFontData.assign(std::istreambuf_iterator<char>(kf), {});
+				if (!sKeyFontData.empty())
+					break;
+			}
+#endif
 		}
 		static const ImWchar keyRanges[] = {0x0020, 0x007E, 0};
 		sFonts.key = sKeyFontData.empty() ? sFonts.item

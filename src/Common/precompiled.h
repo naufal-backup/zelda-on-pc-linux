@@ -298,7 +298,12 @@ inline uint64 _udiv128(uint64 highDividend, uint64 lowDividend, uint64 divisor, 
 	#define TLS_WORKAROUND_NOINLINE // no-op for MSVC as it has a flag for fiber-safe TLS optimizations
 #elif defined(__GNUC__) && !defined(__llvm__)
     #define UNREACHABLE __builtin_unreachable()
+#if __GNUC__ >= 13
 	#define ASSUME(__cond) __attribute__((assume(__cond)))
+#else
+	// the attribute needs GCC 13, before that the condition is only checked
+	#define ASSUME(__cond) do { if (!(__cond)) __builtin_unreachable(); } while (0)
+#endif
 	#define TLS_WORKAROUND_NOINLINE __attribute__((noinline))
 #elif defined(__clang__)
 	#define UNREACHABLE __builtin_unreachable()

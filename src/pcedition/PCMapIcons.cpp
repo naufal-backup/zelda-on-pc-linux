@@ -1,4 +1,5 @@
 #include "pcedition/PCMapIcons.h"
+#include "pcedition/PCVK.h"
 #include "pcedition/PCEdition.h"
 #include "pcedition/PCSettings.h"
 #include "pcedition/PCInput.h"

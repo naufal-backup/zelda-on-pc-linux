@@ -1366,18 +1366,13 @@ void MainWindow::UpdatePCECursor()
 		m_pce_cursor_captured = false;
 	}
 #else
-	// The pointer of the desktop is hidden while playing and put back into the middle of the window: it can never
-	// wander to another monitor. The raw input of the device delivers the full mouse motion either way.
+	// The cursor of the desktop is hidden while playing. The raw input of the device (evdev) delivers the full mouse
+	// motion either way, so the camera of the game is not affected by the pointer of the desktop.
 	const bool capture = m_game_launched && g_window_info.app_active && pce::Input::WantsCursorCaptured();
 	if (capture)
 	{
 		ShowCursor(false);
 		m_pce_cursor_captured = true;
-		const wxRect client = GetClientRect();
-		const wxPoint middle = ToScreen(client.GetPosition()) + wxPoint(client.GetWidth() / 2, client.GetHeight() / 2);
-		const wxPoint current = wxGetMousePosition();
-		if (std::abs(current.x - middle.x) > 4 || std::abs(current.y - middle.y) > 4)
-			wxSetMousePosition(middle);
 	}
 	else if (m_pce_cursor_captured)
 	{

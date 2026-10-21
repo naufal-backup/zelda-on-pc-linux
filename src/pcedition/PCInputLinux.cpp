@@ -6,8 +6,9 @@
 // is read as it is.
 //
 // When the devices cannot be opened (the user is not in the "input" group and no udev rule gives access to them), the
-// X11 backend takes over: the pointer events of the game window and the raw keyboard events of the X server. That
-// needs the window to be an X11 window, so it only works when the desktop runs X11 (or XWayland with GDK_BACKEND=x11).
+// X11 backend takes over: the raw keyboard and pointer events of the X server (XInput2) and the pointer events of the
+// window. That needs the window to be an X11 window, so it only works when the desktop runs X11 (or XWayland with
+// GDK_BACKEND=x11).
 
 #include "pcedition/PCInputBackend.h"
 
@@ -31,7 +32,18 @@
 #include "gui/interface/WindowSystem.h"
 
 #ifdef HAS_X11
-#include <X11/Xlib.h>
+// The X11 headers of the system are read by the platform header of the project, which undoes the definitions of the
+// X11 headers that clash with the ones of the project (Bool, Status, Success, ...). The extension headers of the X
+// server need them, so they are defined again here.
+#ifndef Bool
+#define Bool int
+#endif
+#ifndef Status
+#define Status int
+#endif
+#ifndef Success
+#define Success 0
+#endif
 #include <X11/extensions/XInput2.h>
 #endif
 
@@ -250,7 +262,6 @@ namespace pce::Input
 		{
 			Display* display = nullptr;
 			Window window = 0;
-			Atom netActiveWindow = 0;
 		};
 
 		X11State sX11;
@@ -259,8 +270,8 @@ namespace pce::Input
 		{
 			if (!sX11.display || keycode == 0)
 				return 0;
-			KeyCode min = 0, max = 0;
-			if (!XDisplayKeycodes(sX11.display, &min, &max) || keycode < min || keycode > max)
+			int min = 0, max = 0;
+			if (!XDisplayKeycodes(sX11.display, &min, &max) || keycode < (unsigned int)min || keycode > (unsigned int)max)
 				return 0;
 			int count = 0;
 			KeySym* syms = XGetKeyboardMapping(sX11.display, (KeyCode)keycode, 1, &count);
@@ -378,17 +389,24 @@ namespace pce::Input
 			}
 			Window window = (Window)info.surface;
 			// the raw keyboard events are needed: the plain key events do not tell left and right apart
-			XIEventMask mask = XI_RawKeyPressMask | XI_RawKeyReleaseMask | XI_RawMotionMask;
-			const int rc = XISelectEvents(sX11.display, window, mask, XIAllDevices);
-			if (rc != Success)
+			unsigned char mask[8]{};
+			auto select = [&](int type) { mask[type / 8] |= (unsigned char)(1 << (type % 8)); };
+			select(XI_RawKeyPress);
+			select(XI_RawKeyRelease);
+			select(XI_RawMotion);
+			select(XI_ButtonPress);
+			select(XI_ButtonRelease);
+			XIEventMask eventMask{};
+			eventMask.deviceid = XIAllDevices;
+			eventMask.mask_len = sizeof(mask);
+			eventMask.mask = mask;
+			if (XISelectEvents(sX11.display, window, &eventMask, 1) != Success)
 			{
-				cemuLog_log(LogType::Force, "PCInput: XISelectEvents failed ({})", rc);
+				cemuLog_log(LogType::Force, "PCInput: XISelectEvents failed");
 				XCloseDisplay(sX11.display);
 				sX11.display = nullptr;
 				return false;
 			}
-			// the buttons of the mouse and the wheel are plain pointer events of the window
-			XISelectEvents(sX11.display, window, XI_ButtonPressMask | XI_ButtonReleaseMask, XIAllDevices);
 			sX11.window = window;
 			return true;
 		}
@@ -405,36 +423,48 @@ namespace pce::Input
 
 		void X11HandleEvent(XEvent& ev)
 		{
-			if (ev.type == GenericEvent)
+			if (ev.type != GenericEvent || !ev.xgeneric.data)
+				return;
+			const XIEvent* xie = (const XIEvent*)ev.xgeneric.data;
+			switch (xie->evtype)
 			{
-				XIEvent* xie = (XIEvent*)ev.xgeneric.data;
-				if (!xie)
-					return;
-				if (xie->type == XI_RawKeyPress || xie->type == XI_RawKeyRelease)
-				{
-					const uint16 vk = X11KeycodeToVK(xie->raw_event.detail);
-					if (vk)
-						BackendSetKey(vk, xie->type == XI_RawKeyPress);
-				}
-				else if (xie->type == XI_RawMotion)
-				{
-					// the motion the server made itself (the pointer was warped) is not a movement of the device
-					if (xie->raw_event.flags & XIPointerEmulated)
-						return;
-					BackendMouseMove((sint32)xie->raw_event.delta_x, (sint32)xie->raw_event.delta_y);
-				}
+			case XI_RawKeyPress:
+			case XI_RawKeyRelease:
+			{
+				const XIRawEvent* raw = (const XIRawEvent*)ev.xgeneric.data;
+				const uint16 vk = X11KeycodeToVK(raw->detail);
+				if (vk)
+					BackendSetKey(vk, xie->evtype == XI_RawKeyPress);
+				break;
 			}
-			else if (ev.type == ButtonPress || ev.type == ButtonRelease)
+			case XI_RawMotion:
 			{
-				const bool down = ev.type == ButtonPress;
-				const unsigned int button = ev.xbutton.button;
-				if (button == Button1) BackendSetMouseButton(VK_LBUTTON, down);
-				else if (button == Button2) BackendSetMouseButton(VK_MIDDLE, down);
-				else if (button == Button3) BackendSetMouseButton(VK_RBUTTON, down);
-				else if (button == Button4) BackendWheel(120);
-				else if (button == Button5) BackendWheel(-120);
-				else if (button == Button8) BackendSetMouseButton(VK_XBUTTON1, down);
-				else if (button == Button9) BackendSetMouseButton(VK_XBUTTON2, down);
+				const XIRawEvent* raw = (const XIRawEvent*)ev.xgeneric.data;
+				// the motion the server made itself (the pointer was warped) is not a movement of the device
+				if (raw->flags & XIPointerEmulated)
+					return;
+				const double* values = raw->valuators.values;
+				if (!values)
+					return;
+				BackendMouseMove((sint32)values[0], (sint32)values[1]);
+				break;
+			}
+			case XI_ButtonPress:
+			case XI_ButtonRelease:
+			{
+				const XIDeviceEvent* dev = (const XIDeviceEvent*)ev.xgeneric.data;
+				const bool down = xie->evtype == XI_ButtonPress;
+				const int button = dev->detail;
+				if (button == 1) BackendSetMouseButton(VK_LBUTTON, down);
+				else if (button == 2) BackendSetMouseButton(VK_MIDDLE, down);
+				else if (button == 3) BackendSetMouseButton(VK_RBUTTON, down);
+				else if (button == 4) BackendWheel(120);
+				else if (button == 5) BackendWheel(-120);
+				else if (button == 8) BackendSetMouseButton(VK_XBUTTON1, down);
+				else if (button == 9) BackendSetMouseButton(VK_XBUTTON2, down);
+				break;
+			}
+			default: break;
 			}
 		}
 #endif

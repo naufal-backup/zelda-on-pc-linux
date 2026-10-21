@@ -435,7 +435,7 @@ bool CemuApp::OnInit()
 
 	if (pce::IsActive())
 	{
-#ifdef BOOST_OS_WINDOWS
+#if BOOST_OS_WINDOWS
 		pce::InitAfterWindow(m_mainFrame->GetHWND());
 #else
 		// the other platforms have no native window handle here: the input backend and the icon use the window of the

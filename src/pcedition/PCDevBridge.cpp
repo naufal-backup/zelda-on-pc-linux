@@ -19,6 +19,11 @@
 
 #include "Common/socket.h"
 
+#ifndef _WIN32
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#endif
+
 #include "Cafe/HW/MMU/MMU.h"
 #include "Cafe/CafeSystem.h"
 #include "Cafe/OS/libs/coreinit/coreinit_Thread.h"
@@ -45,11 +50,38 @@ namespace pce::DevBridge
 		std::atomic<bool> sQuit{false};
 		SOCKET sListen = INVALID_SOCKET;
 
+		// the header of a bitmap file (the same as the ones of Windows)
+#pragma pack(push, 1)
+		struct BmpFileHeader
+		{
+			uint16 bfType;
+			uint32 bfSize;
+			uint16 bfReserved1;
+			uint16 bfReserved2;
+			uint32 bfOffBits;
+		};
+
+		struct BmpInfoHeader
+		{
+			uint32 biSize;
+			int32 biWidth;
+			int32 biHeight;
+			uint16 biPlanes;
+			uint16 biBitCount;
+			uint32 biCompression;
+			uint32 biSizeImage;
+			int32 biXPelsPerMeter;
+			int32 biYPelsPerMeter;
+			uint32 biClrUsed;
+			uint32 biClrImportant;
+		};
+#pragma pack(pop)
+
 		void WriteBMP(const std::string& path, const std::vector<uint8>& rgb, int w, int h)
 		{
 			const int rowPitch = (w * 3 + 3) & ~3;
-			BITMAPFILEHEADER fh{};
-			BITMAPINFOHEADER ih{};
+			BmpFileHeader fh{};
+			BmpInfoHeader ih{};
 			fh.bfType = 0x4d42;
 			fh.bfOffBits = sizeof(fh) + sizeof(ih);
 			fh.bfSize = fh.bfOffBits + rowPitch * h;
