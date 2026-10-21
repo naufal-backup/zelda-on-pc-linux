@@ -19,6 +19,7 @@
 #include "config/ActiveSettings.h"
 #include "config/CemuConfig.h"
 #include "gui/interface/WindowSystem.h"
+#include "audio/IAudioAPI.h"
 
 namespace pce
 {
@@ -581,6 +582,10 @@ namespace pce
 			c.tv_volume = std::clamp((int)std::lround(s.volume), 0, 100);
 			c.tv_channels = (AudioChannels)std::clamp(s.speakers, 0, 2);
 			c.tv_device = s.audioDevice.empty() ? std::wstring(L"default") : boost::nowide::widen(s.audioDevice);
+#if HAS_CUBEB && !defined(_WIN32)
+			// the only audio backend of the other platforms (the setting of Cemu belongs to another system)
+			c.audio_api = IAudioAPI::Cubeb;
+#endif
 			GetConfigHandle().Save();
 		}
 	}

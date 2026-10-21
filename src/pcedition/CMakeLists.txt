@@ -53,6 +53,7 @@ target_link_libraries(CemuPCEdition PRIVATE
 	CemuConfig
 	CemuInput
 	CemuUtil
+	CemuAudio
 	imguiImpl
 	pugixml::pugixml
 	ZArchive::zarchive
