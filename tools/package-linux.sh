@@ -71,6 +71,7 @@ fi
 
 # the launcher of the desktop and the install script
 cp "$ROOT/dist/linux/zelda-on-pc.desktop" "$STAGE/zelda-on-pc.desktop"
+cp "$ROOT/dist/linux/99-zelda-on-pc-input.rules" "$STAGE/99-zelda-on-pc-input.rules"
 cp "$ROOT/tools/install-linux.sh" "$STAGE/install.sh"
 chmod +x "$STAGE/install.sh"
 
@@ -78,7 +79,7 @@ chmod +x "$STAGE/install.sh"
 ARCHIVE="$ROOT/build/zelda-on-pc-linux-$VERSION-linux-x64.tar.gz"
 mkdir -p "$(dirname "$ARCHIVE")"
 tar -czf "$ARCHIVE" -C "$STAGE" .
-sha256sum "$ARCHIVE" > "$ARCHIVE.sha256"
+cd "$(dirname "$ARCHIVE")" && sha256sum "$(basename "$ARCHIVE")" > "$(basename "$ARCHIVE").sha256"
 
 echo "Staged $(find "$STAGE" -type f | wc -l) files in $STAGE"
 echo "Archive: $ARCHIVE"

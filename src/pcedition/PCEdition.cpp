@@ -281,10 +281,10 @@ namespace pce
 			if (sDevMode)
 				return GetDataDir() / "settings.ini";
 #ifndef _WIN32
-			if (!Platform::IsDirectoryWritable(sExeDir))
-				return GetDataDir() / "settings.ini";
-#endif
+			return GetDataDir() / "settings.ini";
+#else
 			return sExeDir / "settings.ini";
+#endif
 		}
 
 		// title id and title version from the contents of a code/app.xml
@@ -645,19 +645,8 @@ namespace pce
 		if (sDevMode)
 			return sExeDir / "data_dev";
 #ifndef _WIN32
-		// a program that is installed for the whole system cannot write next to itself: the state (the saves, the
-		// settings, the caches) goes into the data folder of the user then
-		const fs::path local = sExeDir / "data";
-		std::error_code ec;
-		if (fs::is_directory(local, ec) && Platform::IsDirectoryWritable(local))
-			return local;
-		if (!fs::exists(local, ec))
-		{
-			fs::create_directories(local, ec);
-			if (!ec && Platform::IsDirectoryWritable(local))
-				return local;
-			fs::remove(local, ec);
-		}
+		// the state of the program lives in the data folder of the user: a program that is installed for the whole
+		// system cannot write next to itself
 		return Platform::GetUserDataDir() / "zelda-on-pc" / "data";
 #else
 		return sExeDir / "data";

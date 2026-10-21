@@ -134,6 +134,16 @@ void CemuApp::DeterminePaths(std::set<fs::path>& failedWriteAccess) // for Windo
 #if BOOST_OS_LINUX || BOOST_OS_BSD
 void CemuApp::DeterminePaths(std::set<fs::path>& failedWriteAccess) // for Linux
 {
+	if (pce::IsActive())
+	{
+		// the PC edition keeps its state (the saves, the settings, the caches) in the data folder of the user
+		wxString exePath = wxStandardPaths::Get().GetExecutablePath();
+		wxString appImagePath;
+		if (wxGetEnv("APPIMAGE", &appImagePath))
+			exePath = appImagePath;
+		pce::DeterminePaths(wxHelper::MakeFSPath(exePath), failedWriteAccess);
+		return;
+	}
 	std::error_code ec;
 	bool isPortable = false;
 	fs::path user_data_path, config_path, cache_path, data_path;
