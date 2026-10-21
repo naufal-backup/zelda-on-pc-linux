@@ -4,6 +4,7 @@
 #include <condition_variable>
 #include <mutex>
 
+#include <wx/app.h>
 #include <wx/display.h>
 #include <wx/filedlg.h>
 #include <wx/icon.h>

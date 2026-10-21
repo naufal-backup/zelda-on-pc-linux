@@ -497,7 +497,7 @@ namespace pce::Input
 				{
 					usleep(50000);
 				}
-				const bool focused = useX11 ? X11IsFocused() : WindowSystem::GetWindowInfo().app_active;
+				const bool focused = useX11 ? X11IsFocused() : WindowSystem::GetWindowInfo().app_active.load();
 				if (focused != IsFocused())
 				{
 					BackendSetFocus(focused);

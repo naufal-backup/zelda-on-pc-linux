@@ -1325,8 +1325,8 @@ namespace pce::Input
 		{
 			// the pointer of the game window (the GUI layer keeps its position up to date)
 			const glm::ivec2 pos = InputManager::instance().get_mouse_position(false);
-			const int cw = g_window_info.phys_width.load();
-			const int ch = g_window_info.phys_height.load();
+			const int cw = WindowSystem::GetWindowInfo().phys_width.load();
+			const int ch = WindowSystem::GetWindowInfo().phys_height.load();
 			if (cw > 0 && ch > 0)
 				MapToPicture((float)pos.x, (float)pos.y, (float)cw, (float)ch, mio.mouseX, mio.mouseY, mio.mouseInside);
 		}
