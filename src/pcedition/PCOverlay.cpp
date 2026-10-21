@@ -8,12 +8,9 @@
 #include "pcedition/PCKeys.h"
 #include "pcedition/PCPrompts.h"
 #include "pcedition/PCMapIcons.h"
+#include "pcedition/PCPlatform.h"
 
-#include <windows.h>
-#include <commdlg.h>
-#include <shellapi.h>
 #include <mutex>
-#pragma comment(lib, "comdlg32.lib")
 #include <fstream>
 #include <thread>
 
@@ -161,7 +158,7 @@ namespace pce::Overlay
 
 		double Now()
 		{
-			return (double)GetTickCount64() / 1000.0;
+			return (double)Platform::MonotonicTicks() / Platform::MonotonicFrequency() * 1000.0;
 		}
 
 		void Toast(const std::string& t)
@@ -221,26 +218,16 @@ namespace pce::Overlay
 			std::sort(sAmiiboFiles.begin(), sAmiiboFiles.end());
 		}
 
-		// Windows' file dialog on a thread of its own (the game keeps running); the chosen file is copied into the folder
+		// the file dialog of the system (the game keeps running); the chosen file is copied into the folder
 		void AddAmiiboFile()
 		{
 			if (sAmiiboDialog.exchange(true))
 				return;
-			HWND owner = (HWND)WindowSystem::GetWindowInfo().window_main.surface;
-			std::thread([owner]() {
-				wchar_t path[2048] = {};
-				OPENFILENAMEW ofn{};
-				ofn.lStructSize = sizeof(ofn);
-				ofn.hwndOwner = owner;
-				ofn.lpstrFilter = L"amiibo files (*.bin, *.nfc, *.dat)\0*.bin;*.nfc;*.dat\0All files\0*.*\0";
-				ofn.lpstrFile = path;
-				ofn.nMaxFile = (DWORD)std::size(path);
-				ofn.lpstrTitle = L"Add an amiibo file";
-				ofn.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR | OFN_EXPLORER;
-				if (GetOpenFileNameW(&ofn))
+			std::thread([]() {
+				if (auto chosen = WindowSystem::OpenFileDialog("Add an amiibo file", "Amiibo files (*.bin;*.nfc;*.dat)|*.bin;*.nfc;*.dat|All files (*.*)|*.*"))
 				{
 					std::error_code ec;
-					const fs::path src(path);
+					const fs::path src(*chosen);
 					fs::create_directories(AmiiboDir(), ec);
 					const fs::path dst = AmiiboDir() / src.filename();
 					if (!fs::equivalent(src, dst, ec))
@@ -257,7 +244,7 @@ namespace pce::Overlay
 		{
 			std::error_code ec;
 			fs::create_directories(AmiiboDir(), ec);
-			ShellExecuteW(nullptr, L"open", AmiiboDir().wstring().c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+			Platform::OpenFolder(AmiiboDir());
 		}
 
 		std::vector<Page> BuildPages(bool embedded = false)
@@ -1026,7 +1013,7 @@ namespace pce::Overlay
 			if (sConfirmQuit)
 			{
 				if (k == Key::Enter || k == KeyChar('Y'))
-					PostMessageW((HWND)WindowSystem::GetWindowInfo().window_main.surface, WM_CLOSE, 0, 0);
+					WindowSystem::CloseMainWindow();
 				sConfirmQuit = false;
 				return false;
 			}

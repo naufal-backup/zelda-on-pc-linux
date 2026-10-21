@@ -2,9 +2,8 @@
 #include "pcedition/PCPrompts.h"
 #include "pcedition/PCEdition.h"
 #include "pcedition/PCSettings.h"
+#include "pcedition/PCPlatform.h"
 
-#include <windows.h>
-#include <shlobj.h>
 #include <fstream>
 #include <boost/algorithm/string.hpp>
 
@@ -13,6 +12,7 @@
 #include "Cafe/GraphicPack/GraphicPack2.h"
 #include "Cafe/HW/Latte/Core/Latte.h"
 #include "Cafe/CafeSystem.h"
+#include "gui/interface/WindowSystem.h"
 
 namespace pce::Graphics
 {
@@ -28,10 +28,8 @@ namespace pce::Graphics
 		{
 			std::vector<fs::path> r;
 			r.emplace_back(GetExeDir() / "resources" / "pcedition" / "graphicPacks" / "BreathOfTheWild");
-			PWSTR path = nullptr;
-			if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_RoamingAppData, 0, nullptr, &path)))
-				r.emplace_back(fs::path(path) / "Cemu" / "graphicPacks" / "downloadedGraphicPacks" / "BreathOfTheWild");
-			CoTaskMemFree(path);
+			r.emplace_back(Platform::GetUserDataDir() / "Cemu" / "graphicPacks" / "downloadedGraphicPacks" / "BreathOfTheWild");
+			r.emplace_back(Platform::GetUserConfigDir() / "Cemu" / "graphicPacks" / "downloadedGraphicPacks" / "BreathOfTheWild");
 			return r;
 		}
 
@@ -560,7 +558,8 @@ blr
 		if (setting >= 1 && setting <= 4)
 			return setting;
 		// automatic: the shape of the main display
-		const int w = GetSystemMetrics(SM_CXSCREEN), h = GetSystemMetrics(SM_CYSCREEN);
+		int w = 0, h = 0;
+		WindowSystem::GetScreenSize(w, h);
 		const double ratio = h > 0 ? (double)w / (double)h : 16.0 / 9.0;
 		return ratio > 3.2 ? 4 : (ratio > 2.2 ? 3 : 1); // 32:9 = 3.56, 21:9 = 2.33 - 2.39, 16:9 = 1.78
 	}

@@ -6,9 +6,8 @@
 #include "pcedition/PCUI.h"
 #include "pcedition/PCPrompts.h"
 #include "pcedition/PCIcon.h"
+#include "pcedition/PCPlatform.h"
 
-#include <windows.h>
-#include <shlobj.h>
 #include <boost/algorithm/string.hpp>
 #include <pugixml.hpp>
 #include <zarchive/zarchivereader.h>
@@ -19,6 +18,7 @@
 
 #include "config/ActiveSettings.h"
 #include "config/CemuConfig.h"
+#include "gui/interface/WindowSystem.h"
 
 namespace pce
 {
@@ -125,7 +125,8 @@ namespace pce
 					return true;
 				}
 			}
-			for (const fs::path& txt : {sExeDir / "data" / "keys.txt", sExeDir / "data_dev" / "keys.txt", RoamingAppData() / "Cemu" / "keys.txt"})
+			for (const fs::path& txt : {sExeDir / "data" / "keys.txt", sExeDir / "data_dev" / "keys.txt", RoamingAppData() / "Cemu" / "keys.txt",
+									   UserDataDir() / "Cemu" / "keys.txt"})
 			{
 				std::vector<NCrypto::AesKey> keys;
 				ReadKeysTxt(txt, keys);
@@ -260,12 +261,13 @@ namespace pce
 
 		fs::path RoamingAppData()
 		{
-			PWSTR path = nullptr;
-			fs::path r;
-			if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_RoamingAppData, 0, nullptr, &path)))
-				r = path;
-			CoTaskMemFree(path);
-			return r;
+			return Platform::GetUserConfigDir();
+		}
+
+		// the folder of the data of an existing Cemu installation (the saves)
+		fs::path UserDataDir()
+		{
+			return Platform::GetUserDataDir();
 		}
 
 		// title id and title version from the contents of a code/app.xml
@@ -374,7 +376,7 @@ namespace pce
 		// title folder of an existing Cemu installation (titles installed with its "Install update / DLC")
 		fs::path CemuTitleDir()
 		{
-			fs::path mlc = RoamingAppData() / "Cemu" / "mlc01";
+			fs::path mlc = UserDataDir() / "Cemu" / "mlc01";
 			pugi::xml_document doc;
 			if (doc.load_file((RoamingAppData() / "Cemu" / "settings.xml").c_str()))
 			{
@@ -493,7 +495,7 @@ namespace pce
 		// one-time import of the user's existing Cemu save (copy, never move)
 		void ImportExistingSave()
 		{
-			const fs::path cemuMlc = sDevMode ? sExeDir / "data" / "mlc01" : RoamingAppData() / "Cemu" / "mlc01";
+			const fs::path cemuMlc = sDevMode ? sExeDir / "data" / "mlc01" : UserDataDir() / "Cemu" / "mlc01";
 			const fs::path mlc = ActiveSettings::GetMlcPath();
 			const std::string save = fmt::format("usr/save/00050000/{:08x}", sRegion ? sRegion : 0x101C9500u);
 			CopyTreeIfMissing(cemuMlc / save, mlc / save);
@@ -673,6 +675,10 @@ namespace pce
 	{
 		Input::SetMainWindow(mainHwnd);
 		Icon::ApplyToWindow(mainHwnd, GetDataDir() / "game.ico");
+#ifndef _WIN32
+		// the other platforms set the icon of the window through the window system (wxWidgets)
+		WindowSystem::SetMainWindowIcon(_pathToUtf8(GetDataDir() / "game.ico"));
+#endif
 		Input::Start();
 		if (sDevMode)
 			DevBridge::Start();
@@ -778,7 +784,6 @@ namespace pce
 
 	void FatalError(const std::string& message)
 	{
-		std::wstring w = boost::nowide::widen(message);
-		MessageBoxW(nullptr, w.c_str(), boost::nowide::widen(kGameTitle).c_str(), MB_OK | MB_ICONERROR);
+		Platform::ShowFatalError(message);
 	}
 }

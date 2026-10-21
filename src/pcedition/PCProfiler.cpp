@@ -1,9 +1,11 @@
 #include "pcedition/PCProfiler.h"
 #include "Cafe/HW/MMU/MMU.h"
 
+#ifdef _WIN32
 #include <windows.h>
 #include <tlhelp32.h>
 #include <timeapi.h>
+#endif
 #include <map>
 #include <unordered_map>
 #include <mutex>
@@ -12,12 +14,15 @@
 #include <fstream>
 #include <algorithm>
 
+#ifdef _WIN32
 #pragma comment(lib, "winmm.lib")
+#endif
 
 const char* PPCInterpreter_getHLEName(sint32 funcIndex); // PPCInterpreterHLE.cpp
 
 namespace pce::Profiler
 {
+#ifdef _WIN32
 	volatile uint32 gHle[4]{};
 	volatile uint32 gHleLr[4]{};
 	volatile uint32 gIdle[4]{};
@@ -459,4 +464,52 @@ namespace pce::Profiler
 		CloseHandle(snap);
 		return r.empty() ? "no threads found" : r;
 	}
+#else // !_WIN32
+
+// The sampling profiler needs the thread suspension and the thread contexts of the Windows kernel. On the other
+// platforms the profiler is not available: the dev bridge says so instead of pretending to work.
+
+volatile uint32 gHle[4]{};
+volatile uint32 gHleLr[4]{};
+volatile uint32 gIdle[4]{};
+volatile uint32 gThread[4]{};
+std::atomic<bool> gYieldFastPath{true};
+
+namespace
+{
+	std::mutex sFuncMtx;
+	std::map<uintptr_t, std::pair<size_t, uint32>> sFuncs;
+}
+
+void RegisterFunction(const void* hostCode, size_t hostSize, uint32 ppcAddress, std::vector<std::pair<uint32, uint32>>&& segments)
+{
+	std::lock_guard l(sFuncMtx);
+	sFuncs[(uintptr_t)hostCode] = {hostSize, ppcAddress};
+}
+
+void UnregisterFunction(const void* hostCode)
+{
+	std::lock_guard l(sFuncMtx);
+	sFuncs.erase((uintptr_t)hostCode);
+}
+
+bool Running() { return false; }
+
+std::string Start(int hz)
+{
+	return "the sampling profiler is only available on Windows";
+}
+
+std::string Stop(const std::string& reportPath, int top)
+{
+	return "the sampling profiler is only available on Windows";
+}
+
+std::string PinEmulationThreads(bool enable)
+{
+	return "pinning the threads is only available on Windows";
+}
+
+#endif
+
 }

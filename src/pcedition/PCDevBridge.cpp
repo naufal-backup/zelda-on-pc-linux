@@ -11,13 +11,13 @@
 #include "pcedition/PCGraphics.h"
 #include "pcedition/PCMapIcons.h"
 
-#include <winsock2.h>
-#include <ws2tcpip.h>
 #include <sstream>
 #include <map>
 #include <cmath>
 #include <thread>
 #include <boost/algorithm/string.hpp>
+
+#include "Common/socket.h"
 
 #include "Cafe/HW/MMU/MMU.h"
 #include "Cafe/CafeSystem.h"
@@ -28,7 +28,9 @@
 #include "Cafe/HW/Latte/Core/Latte.h"
 #include <fstream>
 
+#ifdef _WIN32
 #pragma comment(lib, "Ws2_32.lib")
+#endif
 
 void LatteFrameGen_GetStats(float& baseFps, float& shownFps, bool& generating); // LatteRenderTarget.cpp
 void LatteFrameGen_GetPacing(double& meanMs, double& stdMs, double& p95Ms);
@@ -742,8 +744,10 @@ namespace pce::DevBridge
 
 		void ServerThread()
 		{
+#ifdef _WIN32
 			WSADATA wsa;
 			WSAStartup(MAKEWORD(2, 2), &wsa);
+#endif
 			sListen = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 			sockaddr_in addr{};
 			addr.sin_family = AF_INET;

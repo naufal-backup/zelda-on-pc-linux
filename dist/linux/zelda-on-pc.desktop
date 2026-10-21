@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Zelda on PC
+GenericName=Emulator
+Comment=The Legend of Zelda: Breath of the Wild on PC (mouse and keyboard)
+Exec=zelda-on-pc %f
+Icon=zelda-on-pc
+Terminal=false
+Categories=Game;Emulator;
+Keywords=Zelda;Breath of the Wild;Cemu;
+StartupWMClass=zelda-on-pc

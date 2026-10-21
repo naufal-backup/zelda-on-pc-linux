@@ -434,7 +434,15 @@ bool CemuApp::OnInit()
 	g_window_info.app_active = true;
 
 	if (pce::IsActive())
+	{
+#ifdef BOOST_OS_WINDOWS
 		pce::InitAfterWindow(m_mainFrame->GetHWND());
+#else
+		// the other platforms have no native window handle here: the input backend and the icon use the window of the
+		// window system (see WindowSystem::GetWindowInfo)
+		pce::InitAfterWindow(nullptr);
+#endif
+	}
 	else
 		HotkeySettings::Init(m_mainFrame);
 

@@ -6,18 +6,22 @@
 #include "pcedition/PCMenus.h"
 #include "pcedition/PCOverlay.h"
 #include "pcedition/PCGraphics.h"
+#include "pcedition/PCInputBackend.h"
+#include "pcedition/PCPlatform.h"
+#include "pcedition/PCVK.h"
 
-#include <windows.h>
 #include <deque>
 #include <thread>
 
 #include "Cafe/OS/libs/vpad/vpad.h"
 #include "Cafe/OS/common/OSCommon.h"
 #include "Cafe/HW/Espresso/PPCState.h"
+#include "input/InputManager.h"
 #include "input/motion/MotionSample.h"
 #include "Cafe/HW/MMU/MMU.h"
 #include "input/motion/MotionHandler.h"
 #include "util/math/quaternion.h"
+#include "gui/interface/WindowSystem.h"
 
 std::atomic<bool> g_pceProbeArmed{false};   // latency probe (LatteRenderTarget.cpp reads it)
 std::atomic<uint64> g_pceProbeInputTick{0};
@@ -59,19 +63,13 @@ namespace pce::Input
 		Debug sDebug;
 
 		// ---------------- raw input thread state ----------------
-		std::thread sThread;
-		std::atomic<bool> sQuit{false};
-		std::atomic<HWND> sMsgWnd{nullptr};
-		std::atomic<HWND> sMainWnd{nullptr};
-		std::atomic<DWORD> sThreadId{0};
-
 		std::array<std::atomic<bool>, 256> sKeyDown{};
 		std::mutex sPressMutex;
 		std::deque<Key> sPresses;
 
 		struct MouseSample
 		{
-			sint64 t; // QPC ticks
+			sint64 t; // ticks of the monotonic clock
 			sint32 dx, dy;
 		};
 		std::mutex sMouseMutex;
@@ -94,25 +92,15 @@ namespace pce::Input
 		Input::SystemPanel sPanel;
 		std::atomic<sint64> sEscGraceUntil{0};  // a menu was just closed with Esc: Esc does not open the PC menu yet
 		std::atomic<bool> sTiltActive{false};
-		std::atomic<bool> sFocused{false};
 
 		sint64 QpcNow()
 		{
-			LARGE_INTEGER li;
-			QueryPerformanceCounter(&li);
-			return li.QuadPart;
+			return Platform::MonotonicTicks();
 		}
 
 		double QpcFreq()
 		{
-			static double f = []() { LARGE_INTEGER li; QueryPerformanceFrequency(&li); return (double)li.QuadPart; }();
-			return f;
-		}
-
-		void ReleaseAllKeys()
-		{
-			for (auto& k : sKeyDown)
-				k.store(false);
+			return Platform::MonotonicFrequency();
 		}
 
 		void PushPress(Key k)
@@ -147,158 +135,10 @@ namespace pce::Input
 				PushPress((Key)vk);
 		}
 
-		void LogFocusChange(bool focused)
-		{
-			HWND fg = GetForegroundWindow();
-			wchar_t cls[128]{}, title[128]{};
-			if (fg)
-			{
-				GetClassNameW(fg, cls, 127);
-				GetWindowTextW(fg, title, 127);
-			}
-			DWORD pid = 0;
-			if (fg)
-				GetWindowThreadProcessId(fg, &pid);
-			cemuLog_log(LogType::Force, "PCE input: focus {} (foreground hwnd={:x} pid={} class='{}' title='{}')", focused ? "gained" : "lost",
-						(uintptr_t)fg, pid, boost::nowide::narrow(cls), boost::nowide::narrow(title));
-		}
-
-		bool ComputeFocus()
-		{
-			HWND main = sMainWnd.load();
-			if (!main)
-				return false;
-			HWND fg = GetForegroundWindow();
-			if (!fg)
-				return false;
-			return fg == main || IsChild(main, fg) || GetAncestor(fg, GA_ROOTOWNER) == main;
-		}
-
-		void HandleRawInput(HRAWINPUT hri)
-		{
-			alignas(8) BYTE buffer[256];
-			UINT size = sizeof(buffer);
-			if (GetRawInputData(hri, RID_INPUT, buffer, &size, sizeof(RAWINPUTHEADER)) == (UINT)-1)
-				return;
-			const RAWINPUT* ri = (const RAWINPUT*)buffer;
-			const bool focused = ComputeFocus();
-			if (focused != sFocused.load())
-			{
-				sFocused = focused;
-				LogFocusChange(focused);
-				if (!focused)
-					ReleaseAllKeys();
-			}
-			if (!focused)
-				return;
-			if (ri->header.dwType == RIM_TYPEMOUSE)
-			{
-				const RAWMOUSE& m = ri->data.mouse;
-				if ((m.usFlags & MOUSE_MOVE_ABSOLUTE) == 0 && (m.lLastX != 0 || m.lLastY != 0) && !sOverlayOpen.load() && !sEmbedFocus.load() &&
-					!sPopupOpen.load())
-				{
-					std::lock_guard lock(sMouseMutex);
-					const sint64 t = QpcNow();
-					sMouseSamples.push_back({t, (sint32)m.lLastX, (sint32)m.lLastY});
-					if (sMouseSamples.size() > 20000)
-						sMouseSamples.pop_front();
-				}
-				const USHORT f = m.usButtonFlags;
-				if (f & RI_MOUSE_LEFT_BUTTON_DOWN) SetKey(VK_LBUTTON, true);
-				if (f & RI_MOUSE_LEFT_BUTTON_UP) SetKey(VK_LBUTTON, false);
-				if (f & RI_MOUSE_RIGHT_BUTTON_DOWN) SetKey(VK_RBUTTON, true);
-				if (f & RI_MOUSE_RIGHT_BUTTON_UP) SetKey(VK_RBUTTON, false);
-				if (f & RI_MOUSE_MIDDLE_BUTTON_DOWN) SetKey(VK_MBUTTON, true);
-				if (f & RI_MOUSE_MIDDLE_BUTTON_UP) SetKey(VK_MBUTTON, false);
-				if (f & RI_MOUSE_BUTTON_4_DOWN) SetKey(VK_XBUTTON1, true);
-				if (f & RI_MOUSE_BUTTON_4_UP) SetKey(VK_XBUTTON1, false);
-				if (f & RI_MOUSE_BUTTON_5_DOWN) SetKey(VK_XBUTTON2, true);
-				if (f & RI_MOUSE_BUTTON_5_UP) SetKey(VK_XBUTTON2, false);
-				if (f & RI_MOUSE_WHEEL)
-					OnWheel((SHORT)m.usButtonData);
-			}
-			else if (ri->header.dwType == RIM_TYPEKEYBOARD)
-			{
-				const RAWKEYBOARD& kb = ri->data.keyboard;
-				USHORT vk = kb.VKey;
-				if (vk == 0 || vk >= 255)
-					return;
-				const bool down = (kb.Flags & RI_KEY_BREAK) == 0;
-				const bool e0 = (kb.Flags & RI_KEY_E0) != 0;
-				switch (vk)
-				{
-				case VK_SHIFT: vk = (kb.MakeCode == 0x36) ? VK_RSHIFT : VK_LSHIFT; break;
-				case VK_CONTROL: vk = e0 ? VK_RCONTROL : VK_LCONTROL; break;
-				case VK_MENU: vk = e0 ? VK_RMENU : VK_LMENU; break;
-				default: break;
-				}
-				SetKey(vk, down);
-			}
-		}
-
-		LRESULT CALLBACK MsgWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
-		{
-			if (msg == WM_INPUT)
-			{
-				HandleRawInput((HRAWINPUT)lp);
-				return DefWindowProcW(hwnd, msg, wp, lp);
-			}
-			return DefWindowProcW(hwnd, msg, wp, lp);
-		}
-
-		void InputThread()
-		{
-			SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
-			sThreadId = GetCurrentThreadId();
-			WNDCLASSEXW wc{};
-			wc.cbSize = sizeof(wc);
-			wc.lpfnWndProc = MsgWndProc;
-			wc.hInstance = GetModuleHandleW(nullptr);
-			wc.lpszClassName = L"BotWPCInput";
-			RegisterClassExW(&wc);
-			HWND hwnd = CreateWindowExW(0, wc.lpszClassName, L"", 0, 0, 0, 0, 0, HWND_MESSAGE, nullptr, wc.hInstance, nullptr);
-			sMsgWnd = hwnd;
-			RAWINPUTDEVICE rid[2]{};
-			rid[0].usUsagePage = 0x01;
-			rid[0].usUsage = 0x02; // mouse
-			rid[0].dwFlags = RIDEV_INPUTSINK;
-			rid[0].hwndTarget = hwnd;
-			rid[1].usUsagePage = 0x01;
-			rid[1].usUsage = 0x06; // keyboard
-			rid[1].dwFlags = RIDEV_INPUTSINK;
-			rid[1].hwndTarget = hwnd;
-			if (!RegisterRawInputDevices(rid, 2, sizeof(RAWINPUTDEVICE)))
-				cemuLog_log(LogType::Force, "PCInput: RegisterRawInputDevices failed ({})", GetLastError());
-			MSG msg;
-			while (!sQuit.load())
-			{
-				// wake up periodically to refresh focus state even without input
-				DWORD r = MsgWaitForMultipleObjects(0, nullptr, FALSE, 50, QS_ALLINPUT);
-				while (PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE))
-				{
-					if (msg.message == WM_QUIT)
-						sQuit = true;
-					TranslateMessage(&msg);
-					DispatchMessageW(&msg);
-				}
-				const bool focused = ComputeFocus();
-				if (focused != sFocused.load())
-				{
-					sFocused = focused;
-					LogFocusChange(focused);
-					if (!focused)
-						ReleaseAllKeys();
-				}
-				(void)r;
-			}
-			rid[0].dwFlags = RIDEV_REMOVE;
-			rid[0].hwndTarget = nullptr;
-			rid[1].dwFlags = RIDEV_REMOVE;
-			rid[1].hwndTarget = nullptr;
-			RegisterRawInputDevices(rid, 2, sizeof(RAWINPUTDEVICE));
-			DestroyWindow(hwnd);
-			sMsgWnd = nullptr;
-		}
+		// the focus state of the game window (the backend reports the changes)
+		std::atomic<bool> sFocused{false};
+		// the native handle of the main window (the backend needs it to know which window has the focus)
+		std::atomic<void*> sMainWindowHandle{nullptr};
 
 		// Position in the client area of the game window -> position in the game's picture (0 - 1). The picture keeps
 		// its shape: in a window of another shape (16:10 display, 16:9 picture on an ultrawide display, ...) it has bars,
@@ -1114,27 +954,74 @@ namespace pce::Input
 		osLib_addFunction("coreinit", "PCE_SurfCamYaw", HLE_SurfCamYaw);
 	}
 
+	// ---- the bridge to the raw input backend ----
+
+	void BackendSetKey(uint16 vk, bool down)
+	{
+		if (!sFocused.load())
+			return;
+		SetKey(vk, down);
+	}
+
+	void BackendMouseMove(sint32 dx, sint32 dy)
+	{
+		if (dx == 0 && dy == 0)
+			return;
+		// while the PC layer has the mouse (its menu, the settings in the System page, a popup) the game does not move
+		if (!sFocused.load() || sOverlayOpen.load() || sEmbedFocus.load() || sPopupOpen.load())
+			return;
+		std::lock_guard lock(sMouseMutex);
+		sMouseSamples.push_back({QpcNow(), dx, dy});
+		if (sMouseSamples.size() > 20000)
+			sMouseSamples.pop_front();
+	}
+
+	void BackendSetMouseButton(uint16 vk, bool down)
+	{
+		if (!sFocused.load())
+			return;
+		SetKey(vk, down);
+	}
+
+	void BackendWheel(sint32 delta)
+	{
+		if (!sFocused.load())
+			return;
+		OnWheel(delta);
+	}
+
+	void BackendSetFocus(bool focused)
+	{
+		if (sFocused.exchange(focused) == focused)
+			return;
+		if (!focused)
+			ReleaseAllKeys();
+	}
+
+	bool IsFocused()
+	{
+		return sFocused.load();
+	}
+
+	void ReleaseAllKeys()
+	{
+		for (auto& k : sKeyDown)
+			k.store(false);
+	}
+
 	void Start()
 	{
-		if (sThread.joinable())
-			return;
-		sQuit = false;
-		sThread = std::thread(InputThread);
+		Backend::Start();
 	}
 
 	void Shutdown()
 	{
-		if (!sThread.joinable())
-			return;
-		sQuit = true;
-		if (DWORD tid = sThreadId.load())
-			PostThreadMessageW(tid, WM_QUIT, 0, 0);
-		sThread.join();
+		Backend::Stop();
 	}
 
 	void SetMainWindow(void* hwnd)
 	{
-		sMainWnd = (HWND)hwnd;
+		sMainWindowHandle.store(hwnd);
 	}
 
 	bool IsGameWindowFocused()
@@ -1429,12 +1316,14 @@ namespace pce::Input
 		Menus::FrameIO mio;
 		mio.frame = frameNo;
 		mio.focused = inputEnabled;
-		if (HWND main = sMainWnd.load())
+		if (pce::IsActive())
 		{
-			POINT pt;
-			RECT rc;
-			if (GetCursorPos(&pt) && ScreenToClient(main, &pt) && GetClientRect(main, &rc) && rc.right > 0 && rc.bottom > 0)
-				MapToPicture((float)pt.x, (float)pt.y, (float)rc.right, (float)rc.bottom, mio.mouseX, mio.mouseY, mio.mouseInside);
+			// the pointer of the game window (the GUI layer keeps its position up to date)
+			const glm::ivec2 pos = InputManager::instance().get_mouse_position(false);
+			const int cw = g_window_info.phys_width.load();
+			const int ch = g_window_info.phys_height.load();
+			if (cw > 0 && ch > 0)
+				MapToPicture((float)pos.x, (float)pos.y, (float)cw, (float)ch, mio.mouseX, mio.mouseY, mio.mouseInside);
 		}
 		if (sDebug.overrideMouse.load())
 		{
@@ -2195,9 +2084,7 @@ namespace pce::Input
 		// latency probe (dev bridge): time of the first VPAD read that turns the camera
 		if (g_pceProbeArmed.load() && g_pceProbeInputTick.load() == 0 && std::fabs(rx) > 0.5f)
 		{
-			LARGE_INTEGER q;
-			QueryPerformanceCounter(&q);
-			g_pceProbeInputTick = (uint64)q.QuadPart;
+			g_pceProbeInputTick = (uint64)Platform::MonotonicTicks();
 		}
 		sDebug.lastStickRX = rx;
 		sDebug.lastStickRY = ry;

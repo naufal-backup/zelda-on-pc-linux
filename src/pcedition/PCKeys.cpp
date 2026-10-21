@@ -1,6 +1,7 @@
 #include "pcedition/PCKeys.h"
 
-#include <windows.h>
+#include "pcedition/PCVK.h"
+
 #include <boost/algorithm/string.hpp>
 
 namespace pce
@@ -131,6 +132,7 @@ namespace pce
 		const uint16 v = (uint16)k;
 		if (v >= (uint16)Key::F1 && v <= (uint16)Key::F1 + 23)
 			return fmt::format("F{}", v - (uint16)Key::F1 + 1);
+#ifdef _WIN32
 		// layout-aware character for printable keys
 		UINT ch = MapVirtualKeyW(v, MAPVK_VK_TO_CHAR) & 0x7FFF;
 		if (ch >= 0x20)
@@ -142,6 +144,13 @@ namespace pce
 		wchar_t name[64]{};
 		if (sc && GetKeyNameTextW((LONG)(sc << 16), name, 64) > 0)
 			return boost::nowide::narrow(name);
+#else
+		// the printable keys are the letters and the digits
+		if ((v >= '0' && v <= '9') || (v >= 'A' && v <= 'Z'))
+			return std::string(1, (char)v);
+		if (v >= (uint16)'a' && v <= (uint16)'z')
+			return std::string(1, (char)(v - 'a' + 'A'));
+#endif
 		return KeyToId(k);
 	}
 

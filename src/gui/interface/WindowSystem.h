@@ -2,6 +2,9 @@
 
 #include "input/api/ControllerState.h"
 
+#include <optional>
+#include <string>
+
 namespace WindowSystem
 {
 	struct WindowHandleInfo
@@ -96,6 +99,16 @@ namespace WindowSystem
 	{
 		ShowErrorDialog(message, "", errorCategory);
 	}
+
+	// The size of the screen the main window is on (physical pixels).
+	void GetScreenSize(int& w, int& h);
+	// Closes the main window (the game asks for it).
+	void CloseMainWindow();
+	// The icon of the main window (an .ico file).
+	bool SetMainWindowIcon(const std::string& icoPath);
+	// A file open dialog. It runs on the thread of the user interface, so it must be called from another thread.
+	// The filter is a list of patterns ("*.bin;*.nfc") separated by semicolons.
+	std::optional<std::string> OpenFileDialog(const std::string& title, const std::string& filter, const std::string& defaultPath = "");
 
 	void Create();
 

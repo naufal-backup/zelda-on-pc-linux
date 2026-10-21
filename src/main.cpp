@@ -274,6 +274,14 @@ int main(int argc, char *argv[])
 #if BOOST_OS_LINUX || BOOST_OS_BSD
     XInitThreads();
 #endif
+	{
+		std::vector<std::wstring> wargs;
+		for (int i = 1; i < argc; i++)
+			wargs.emplace_back(boost::nowide::widen(argv[i]));
+		if (auto toolRc = pce::RunCommandLineTool(wargs))
+			return *toolRc;
+		pce::ParseCommandLine(wargs);
+	}
 	auto parse_rc = LaunchSettings::HandleCommandline(argc, argv);
   if (parse_rc.has_value())
 		return *parse_rc;

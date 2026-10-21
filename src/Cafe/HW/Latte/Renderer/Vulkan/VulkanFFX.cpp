@@ -1,8 +1,13 @@
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanFFX.h"
 
-#include <ffx_api/ffx_api.h>
-#include <ffx_api/ffx_framegeneration.h>
-#include <ffx_api/vk/ffx_api_vk.h>
+#include "ffx_api_compat.h"
+
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <dlfcn.h>
+#include <unistd.h>
+#endif
 
 namespace
 {
@@ -69,6 +74,7 @@ bool VulkanFFX::Load()
 	if (m_loadTried)
 		return m_loaded;
 	m_loadTried = true;
+#ifdef _WIN32
 	wchar_t path[MAX_PATH]{};
 	GetModuleFileNameW(nullptr, path, MAX_PATH);
 	std::wstring dir(path);
@@ -87,6 +93,35 @@ bool VulkanFFX::Load()
 	m_fnDispatch = (void*)GetProcAddress(mod, "ffxDispatch");
 	m_loaded = m_fnCreate && m_fnDestroy && m_fnConfigure && m_fnQuery && m_fnDispatch;
 	cemuLog_log(LogType::Force, "FSR: amd_fidelityfx_vk.dll {}", m_loaded ? "loaded" : "is missing exports");
+#else
+	// the Linux build of the FidelityFX SDK: libamd_fidelityfx_vk.so next to the executable
+	char path[4096]{};
+	const ssize_t len = readlink("/proc/self/exe", path, sizeof(path) - 1);
+	std::string dir = ".";
+	if (len > 0)
+	{
+		path[len] = 0;
+		const std::string exe(path);
+		const size_t slash = exe.find_last_of('/');
+		if (slash != std::string::npos)
+			dir = exe.substr(0, slash);
+	}
+	const std::string lib = dir + "/libamd_fidelityfx_vk.so";
+	void* mod = dlopen(lib.c_str(), RTLD_NOW | RTLD_LOCAL);
+	if (!mod)
+	{
+		cemuLog_log(LogType::Force, "FSR: libamd_fidelityfx_vk.so not found ({}), frame generation unavailable", dlerror() ? dlerror() : "");
+		return false;
+	}
+	m_module = mod;
+	m_fnCreate = dlsym(mod, "ffxCreateContext");
+	m_fnDestroy = dlsym(mod, "ffxDestroyContext");
+	m_fnConfigure = dlsym(mod, "ffxConfigure");
+	m_fnQuery = dlsym(mod, "ffxQuery");
+	m_fnDispatch = dlsym(mod, "ffxDispatch");
+	m_loaded = m_fnCreate && m_fnDestroy && m_fnConfigure && m_fnQuery && m_fnDispatch;
+	cemuLog_log(LogType::Force, "FSR: libamd_fidelityfx_vk.so {}", m_loaded ? "loaded" : "is missing exports");
+#endif
 	return m_loaded;
 }
 

@@ -1,6 +1,13 @@
 #include "input/HotkeySettings.h"
 #include "interface/WindowSystem.h"
 
+#include <condition_variable>
+#include <mutex>
+
+#include <wx/display.h>
+#include <wx/filedlg.h>
+#include <wx/icon.h>
+
 #include "helpers/wxHelpers.h"
 
 #if BOOST_OS_LINUX || BOOST_OS_BSD
@@ -65,6 +72,73 @@ void WindowSystem::ShowErrorDialog(std::string_view message, std::string_view ti
 	else
 		caption = wxString::FromUTF8(title);
 	wxMessageBox(wxString::FromUTF8(message), caption, wxOK | wxCENTRE | wxICON_ERROR);
+}
+
+void WindowSystem::GetScreenSize(int& w, int& h)
+{
+	w = h = 0;
+	if (!g_mainFrame)
+		return;
+	// the display the window is on
+	const wxSize size = wxDisplay::GetFromWindow(g_mainFrame).GetClientAreaSize();
+	w = size.GetWidth();
+	h = size.GetHeight();
+}
+
+void WindowSystem::CloseMainWindow()
+{
+	if (!g_mainFrame)
+		return;
+	// the window is closed by the thread of the user interface
+	wxTheApp->CallAfter([frame = g_mainFrame]() {
+		if (frame && !frame->IsBeingDeleted())
+			frame->Close(true);
+	});
+}
+
+bool WindowSystem::SetMainWindowIcon(const std::string& icoPath)
+{
+	if (!g_mainFrame)
+		return false;
+	wxIcon icon;
+	if (!icon.LoadFile(wxString::FromUTF8(icoPath), wxBITMAP_TYPE_ICO))
+		return false;
+	g_mainFrame->SetIcon(icon);
+	return true;
+}
+
+std::optional<std::string> WindowSystem::OpenFileDialog(const std::string& title, const std::string& filter, const std::string& defaultPath)
+{
+	// the dialog belongs to the thread of the user interface
+	std::mutex mutex;
+	std::condition_variable cv;
+	std::optional<std::string> result;
+	bool done = false;
+	wxTheApp->CallAfter([&mutex, &cv, &result, &done, title, filter, defaultPath]() {
+		std::optional<std::string> chosen;
+		try
+		{
+			wxFileDialog dialog(g_mainFrame, wxString::FromUTF8(title), wxString::FromUTF8(defaultPath), wxEmptyString,
+								wxString::FromUTF8(filter), wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+			if (dialog.ShowModal() == wxID_OK)
+				chosen = std::string(dialog.GetPath().utf8_string());
+		}
+		catch (const std::exception&)
+		{
+			chosen = std::nullopt;
+		}
+		{
+			std::lock_guard lock(mutex);
+			result = chosen;
+			done = true;
+		}
+		cv.notify_all();
+	});
+	{
+		std::unique_lock lock(mutex);
+		cv.wait(lock, [&done]() { return done; });
+	}
+	return result;
 }
 
 WindowSystem::WindowInfo& WindowSystem::GetWindowInfo()

@@ -476,7 +476,9 @@ void MainWindow::OnClose(wxCloseEvent& event)
 	if (pce::IsActive())
 	{
 		pce::Overlay::ReleaseForShutdown();
+#if BOOST_OS_WINDOWS
 		ClipCursor(nullptr);
+#endif
 		ShowCursor(true);
 		Hide();
 	}
@@ -1309,6 +1311,7 @@ void MainWindow::OnDebugViewTextureRelations(wxCommandEvent& event)
 
 void MainWindow::UpdatePCECursor()
 {
+#if BOOST_OS_WINDOWS
 	// The OS cursor is pinned to a 2x2 px area in the middle of the game window while playing: it can never wander
 	// to another monitor or hover anything, and Raw Input still delivers the full mouse motion.
 	// Re-applied on every tick because Windows resets cursor clipping on several occasions.
@@ -1362,6 +1365,26 @@ void MainWindow::UpdatePCECursor()
 		ShowCursor(true);
 		m_pce_cursor_captured = false;
 	}
+#else
+	// The pointer of the desktop is hidden while playing and put back into the middle of the window: it can never
+	// wander to another monitor. The raw input of the device delivers the full mouse motion either way.
+	const bool capture = m_game_launched && g_window_info.app_active && pce::Input::WantsCursorCaptured();
+	if (capture)
+	{
+		ShowCursor(false);
+		m_pce_cursor_captured = true;
+		const wxRect client = GetClientRect();
+		const wxPoint middle = ToScreen(client.GetPosition()) + wxPoint(client.GetWidth() / 2, client.GetHeight() / 2);
+		const wxPoint current = wxGetMousePosition();
+		if (std::abs(current.x - middle.x) > 4 || std::abs(current.y - middle.y) > 4)
+			wxSetMousePosition(middle);
+	}
+	else if (m_pce_cursor_captured)
+	{
+		ShowCursor(true);
+		m_pce_cursor_captured = false;
+	}
+#endif
 }
 
 void MainWindow::ShowCursor(bool state)
@@ -1910,7 +1933,7 @@ void MainWindow::SetFullScreen(bool state)
 		g_window_info.is_fullscreen = state;
 		if (m_fullscreenMenuItem)
 			m_fullscreenMenuItem->Check(state);
-		const bool wasVisible = ::IsWindowVisible(GetHWND()) != FALSE;
+		const bool wasVisible = this->IsShown();
 		this->ShowFullScreen(state, wxFULLSCREEN_ALL);
 		m_menu_visible = false;
 		if (!state)
@@ -1922,9 +1945,8 @@ void MainWindow::SetFullScreen(bool state)
 			// Leaving full screen restores the window style saved when it entered it. With the game started in full
 			// screen that was before the window was first shown: the restored style is a hidden window, and only the
 			// last picture stays on the desktop as a grey rectangle. Show it again.
-			if (wasVisible && !::IsWindowVisible(GetHWND()))
+			if (wasVisible && !this->IsShown())
 			{
-				::ShowWindow(GetHWND(), SW_SHOWNORMAL);
 				Show(true);
 				Raise();
 			}

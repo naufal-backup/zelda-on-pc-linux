@@ -1,7 +1,10 @@
 #include "pcedition/PCIcon.h"
 
-#include <windows.h>
 #include <fstream>
+
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 namespace pce::Icon
 {
@@ -205,6 +208,7 @@ namespace pce::Icon
 
 	bool ApplyToWindow(void* hwnd, const fs::path& icoPath)
 	{
+#ifdef _WIN32
 		std::error_code ec;
 		if (!hwnd || !fs::exists(icoPath, ec))
 			return false;
@@ -216,5 +220,11 @@ namespace pce::Icon
 		SendMessageW((HWND)hwnd, WM_SETICON, ICON_BIG, (LPARAM)big);
 		SendMessageW((HWND)hwnd, WM_SETICON, ICON_SMALL, (LPARAM)small);
 		return true;
+#else
+		// the other platforms set the icon of the window in the GUI layer (wxWidgets)
+		(void)hwnd;
+		(void)icoPath;
+		return false;
+#endif
 	}
 }
