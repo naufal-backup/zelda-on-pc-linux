@@ -2064,7 +2064,7 @@ namespace pce::Input
 						const double len = sqrt(px * px + py * py);
 						fs.manualDirX = (float)(px / len);
 						fs.manualDirY = (float)(py / len);
-						fs.manualHoldUntil = now + (sint64)(QpcFreq() * 0.12);
+						fs.manualHoldUntil = now + (sint64)(QpcFreq() * 3600); // keep manual camera mode active continuously (free 360° rotation, no auto-recenter)
 					}
 					if (now < fs.manualHoldUntil)
 					{
