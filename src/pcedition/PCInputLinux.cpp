@@ -42,6 +42,8 @@ namespace pce::Input
 		std::thread sThread;
 		std::atomic<bool> sQuit{false};
 		std::atomic<bool> sStarted{false};
+		// the X11 backend is in use (the devices of the machine could not be opened)
+		std::atomic<bool> sUseX11{false};
 
 		// ---------------- evdev ----------------
 		struct EvDevice
@@ -437,6 +439,17 @@ namespace pce::Input
 		}
 #endif
 
+		// The focus of the game window: the X server knows it when the window is an X11 window, otherwise the GUI
+		// layer tells it (the window of the game is active).
+		bool CurrentFocus()
+		{
+#ifdef HAS_X11
+			if (sUseX11.load())
+				return X11IsFocused();
+#endif
+			return WindowSystem::GetWindowInfo().app_active.load();
+		}
+
 		// ---------------- the thread ----------------
 		void InputThread()
 		{
@@ -452,6 +465,7 @@ namespace pce::Input
 			}
 #ifdef HAS_X11
 			const bool useX11 = !haveDevices && X11Start();
+			sUseX11 = useX11;
 			if (!haveDevices && !useX11)
 				cemuLog_log(LogType::Force, "PCInput: no input source: the input devices of the machine could not be opened and the "
 										   "window is not an X11 window. Add the user to the group 'input' to play.");
@@ -498,7 +512,7 @@ namespace pce::Input
 				{
 					usleep(50000);
 				}
-				const bool focused = useX11 ? X11IsFocused() : WindowSystem::GetWindowInfo().app_active.load();
+				const bool focused = CurrentFocus();
 				if (focused != IsFocused())
 				{
 					BackendSetFocus(focused);
