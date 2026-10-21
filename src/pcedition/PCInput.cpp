@@ -139,6 +139,8 @@ namespace pce::Input
 		std::atomic<bool> sFocused{false};
 		// the native handle of the main window (the backend needs it to know which window has the focus)
 		std::atomic<void*> sMainWindowHandle{nullptr};
+		// the raw input of the machine is used (the events of the GUI layer are not needed then)
+		std::atomic<bool> sRawInputAvailable{false};
 
 		// Position in the client area of the game window -> position in the game's picture (0 - 1). The picture keeps
 		// its shape: in a window of another shape (16:10 display, 16:9 picture on an ultrawide display, ...) it has bars,
@@ -1006,6 +1008,16 @@ namespace pce::Input
 	void* GetMainWindowHandle()
 	{
 		return sMainWindowHandle.load();
+	}
+
+	void SetRawInputAvailable(bool available)
+	{
+		sRawInputAvailable.store(available);
+	}
+
+	bool HasRawInput()
+	{
+		return sRawInputAvailable.load();
 	}
 
 	void ReleaseAllKeys()

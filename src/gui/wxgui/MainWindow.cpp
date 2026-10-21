@@ -25,6 +25,7 @@
 #include "interface/WindowSystem.h"
 #include "wxHelper.h"
 #include "helpers/wxHelpers.h"
+#include "wxgui/wxPCInput.h"
 #include "PadViewFrame.h"
 
 #if BOOST_OS_LINUX || BOOST_OS_MACOS || BOOST_OS_BSD
@@ -1800,6 +1801,22 @@ void MainWindow::CreateCanvas()
 	m_render_canvas->Bind(wxEVT_RIGHT_UP, &MainWindow::OnMouseRight, this);
 
 	m_render_canvas->Bind(wxEVT_GESTURE_PAN, &MainWindow::OnGesturePan, this);
+
+	// the input of the PC edition layer (the events of the window are only used when the raw input of the machine is
+	// not available, see wxPCInput.cpp)
+	if (pce::IsActive())
+	{
+		m_render_canvas->Bind(wxEVT_KEY_DOWN, [](wxKeyEvent& e) { pce::Gui::OnKey(e, true); });
+		m_render_canvas->Bind(wxEVT_KEY_UP, [](wxKeyEvent& e) { pce::Gui::OnKey(e, false); });
+		m_render_canvas->Bind(wxEVT_LEFT_DOWN, [](wxMouseEvent& e) { pce::Gui::OnMouseButton(e, true); });
+		m_render_canvas->Bind(wxEVT_LEFT_UP, [](wxMouseEvent& e) { pce::Gui::OnMouseButton(e, false); });
+		m_render_canvas->Bind(wxEVT_RIGHT_DOWN, [](wxMouseEvent& e) { pce::Gui::OnMouseButton(e, true); });
+		m_render_canvas->Bind(wxEVT_RIGHT_UP, [](wxMouseEvent& e) { pce::Gui::OnMouseButton(e, false); });
+		m_render_canvas->Bind(wxEVT_MIDDLE_DOWN, [](wxMouseEvent& e) { pce::Gui::OnMouseButton(e, true); });
+		m_render_canvas->Bind(wxEVT_MIDDLE_UP, [](wxMouseEvent& e) { pce::Gui::OnMouseButton(e, false); });
+		m_render_canvas->Bind(wxEVT_MOUSEWHEEL, [](wxMouseEvent& e) { pce::Gui::OnWheel(e); });
+		m_render_canvas->Bind(wxEVT_MOTION, [](wxMouseEvent& e) { pce::Gui::OnMotion(e); });
+	}
 
 	// key events
 	m_render_canvas->Bind(wxEVT_KEY_UP, &MainWindow::OnKeyUp, this);

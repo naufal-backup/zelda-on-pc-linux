@@ -29,6 +29,10 @@ namespace pce::Input
 	void ReleaseAllKeys();
 	// The native handle of the main window (the backend needs it to know which window has the focus).
 	void* GetMainWindowHandle();
+	// The backend tells the GUI layer that it delivers the input of the machine (the events of the GUI layer are then
+	// not needed any more).
+	void SetRawInputAvailable(bool available);
+	bool HasRawInput();
 
 	namespace Backend
 	{

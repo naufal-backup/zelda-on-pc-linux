@@ -523,6 +523,8 @@ namespace pce::Input
 				cemuLog_log(LogType::Force, "PCInput: the input devices of the machine could not be opened. "
 										   "Add the user to the group 'input' to play.");
 #endif
+			// the GUI layer delivers the input of the window when the devices of the machine are not available
+			SetRawInputAvailable(haveDevices || useX11);
 			while (!sQuit.load())
 			{
 				if (haveDevices)
