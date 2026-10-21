@@ -17,6 +17,7 @@
 #include <gdk/gdkkeysyms.h>
 
 #include "pcedition/PCInput.h"
+#include "pcedition/PCInputBackend.h"
 #include "pcedition/PCVK.h"
 
 namespace pce::Gui
@@ -108,7 +109,6 @@ namespace pce::Gui
 		case wxMOUSE_BTN_LEFT: vk = VK_LBUTTON; break;
 		case wxMOUSE_BTN_RIGHT: vk = VK_RBUTTON; break;
 		case wxMOUSE_BTN_MIDDLE: vk = VK_MBUTTON; break;
-		case wxMOUSE_BTN_DOUBLE_CLICK: vk = VK_LBUTTON; break;
 		case wxMOUSE_BTN_AUX1: vk = VK_XBUTTON1; break;
 		case wxMOUSE_BTN_AUX2: vk = VK_XBUTTON2; break;
 		default: break;
