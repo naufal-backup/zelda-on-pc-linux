@@ -13,6 +13,8 @@ add_library(CemuPCEdition
 	PCInputBackend.h
 	PCGraphics.cpp
 	PCGraphics.h
+	PCCamera.cpp
+	PCCamera.h
 	PCOverlay.cpp
 	PCOverlay.h
 	PCDevBridge.cpp
