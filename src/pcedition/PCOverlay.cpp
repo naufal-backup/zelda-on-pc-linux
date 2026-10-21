@@ -283,6 +283,7 @@ namespace pce::Overlay
 				p.items.push_back(slider("Mouse Sensitivity", &sEdit.mouseSensitivity, 0.05f, 6.0f, 0.05f, "%.2f", "Camera rotation per mouse movement: 1:1, no acceleration. Same scale as Source engine games (0.022 degrees per count)."));
 				p.items.push_back(slider("Vertical Sensitivity", &sEdit.mouseSensitivityY, 0.25f, 2.0f, 0.05f, "%.2fx", "Vertical sensitivity relative to horizontal."));
 				p.items.push_back(slider("Aiming Sensitivity", &sEdit.aimSensitivity, 0.1f, 2.0f, 0.05f, "%.2fx", "Sensitivity multiplier while drawing the bow or using the scope."));
+				p.items.push_back(slider("Aim Limit", &sEdit.aimLimit, 0.0f, 180.0f, 5.0f, "%.0f°", "Hard limit of the camera rotation caused by the mouse, in degrees. The camera stops at the limit instead of spinning around. 0 = no limit."));
 				p.items.push_back(toggle("Invert Horizontal", &sEdit.invertX, "Invert left / right camera movement."));
 				p.items.push_back(toggle("Invert Vertical", &sEdit.invertY, "Invert up / down camera movement."));
 				p.items.push_back(slider("Keyboard Camera Speed", &sEdit.keyCameraSpeed, 0.1f, 1.0f, 0.05f, "%.2f", "Speed of the optional keyboard camera keys."));
