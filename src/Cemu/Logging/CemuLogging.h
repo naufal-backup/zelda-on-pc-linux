@@ -85,7 +85,15 @@ bool cemuLog_log(LogType type, fmt::format_string<TArgs...> formatStr, TArgs&&..
 	if (!cemuLog_isLoggingEnabled(type))
 		return false;
 
-	cemuLog_log(type, fmt::format(formatStr, std::forward<TArgs>(args)...));
+	try
+	{
+		cemuLog_log(type, fmt::format(formatStr, std::forward<TArgs>(args)...));
+	}
+	catch (const std::exception& ex)
+	{
+		// a log call must never bring the program down (a missing value, a broken format)
+		cemuLog_log(type, fmt::format("log error ({}): {}", formatStr.str, ex.what()));
+	}
 
 	return true;
 }

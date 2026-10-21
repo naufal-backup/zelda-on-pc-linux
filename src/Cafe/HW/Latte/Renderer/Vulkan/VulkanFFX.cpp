@@ -110,7 +110,9 @@ bool VulkanFFX::Load()
 	void* mod = dlopen(lib.c_str(), RTLD_NOW | RTLD_LOCAL);
 	if (!mod)
 	{
-		cemuLog_log(LogType::Force, "FSR: libamd_fidelityfx_vk.so not found ({}), frame generation unavailable", dlerror() ? dlerror() : "");
+		// the error of the loader (the call clears it, so it is only read once)
+		const char* error = dlerror();
+		cemuLog_log(LogType::Force, "FSR: libamd_fidelityfx_vk.so not found ({}), frame generation unavailable", error ? error : "no error");
 		return false;
 	}
 	m_module = mod;
