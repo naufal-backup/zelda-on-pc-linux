@@ -123,6 +123,12 @@ AudioAPIPtr IAudioAPI::CreateDeviceFromConfig(AudioType type, sint32 rate, sint3
 		const auto it = std::find_if(devices.begin(), devices.end(), [&selectedDevice](const auto& d) { return d->GetIdentifier() == selectedDevice; });
 		if (it != devices.end())
 			device_description = *it;
+		else if (!devices.empty())
+		{
+			// the device that was chosen is not there any more (it was unplugged, the settings come from another
+			// system): the first device of the system is used
+			device_description = devices.front();
+		}
 	}
 	if (!device_description)
 		throw std::runtime_error("failed to find selected device while trying to create audio device");
