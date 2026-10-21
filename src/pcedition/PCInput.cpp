@@ -2048,7 +2048,7 @@ namespace pce::Input
 						// the aim (mouse) rotation is hard limited: the camera can not be rotated further than the limit
 						// from its home position (aimLimit in degrees, 0 = unlimited) and hitting the limit simply stops
 						// the rotation (no overshoot, the camera stays where the mouse has had its say)
-						const double aimMax = (s.aimLimit > 0.0) ? s.aimLimit : 90.0;
+						const double aimMax = (s.aimLimit > 0.0) ? s.aimLimit : 9999.0;
 						sPendingYaw = std::clamp(sPendingYaw + yawDeg, -aimMax, aimMax);
 						sPendingPitch = std::clamp(sPendingPitch + pitchDeg, -aimMax, aimMax);
 						// fresh input: the camera gets two updates to consume it before it is considered stale
