@@ -85,9 +85,9 @@ void WindowSystem::GetScreenSize(int& w, int& h)
 	if (index == wxNOT_FOUND)
 		return;
 	const wxDisplay display(index);
-	const wxSize size = display.GetClientAreaSize();
-	w = size.GetWidth();
-	h = size.GetHeight();
+	const wxRect area = display.GetClientArea();
+	w = area.GetWidth();
+	h = area.GetHeight();
 }
 
 void WindowSystem::CloseMainWindow()

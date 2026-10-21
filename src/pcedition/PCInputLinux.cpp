@@ -421,25 +421,24 @@ namespace pce::Input
 			sX11.window = 0;
 		}
 
-		void X11HandleEvent(XEvent& ev)
+		void HandleXIEvent(int evtype, const void* data)
 		{
-			if (ev.type != GenericEvent || !ev.xgeneric.data)
+			if (!data)
 				return;
-			const XIEvent* xie = (const XIEvent*)ev.xgeneric.data;
-			switch (xie->evtype)
+			switch (evtype)
 			{
 			case XI_RawKeyPress:
 			case XI_RawKeyRelease:
 			{
-				const XIRawEvent* raw = (const XIRawEvent*)ev.xgeneric.data;
+				const XIRawEvent* raw = (const XIRawEvent*)data;
 				const uint16 vk = X11KeycodeToVK(raw->detail);
 				if (vk)
-					BackendSetKey(vk, xie->evtype == XI_RawKeyPress);
+					BackendSetKey(vk, evtype == XI_RawKeyPress);
 				break;
 			}
 			case XI_RawMotion:
 			{
-				const XIRawEvent* raw = (const XIRawEvent*)ev.xgeneric.data;
+				const XIRawEvent* raw = (const XIRawEvent*)data;
 				// the motion the server made itself (the pointer was warped) is not a movement of the device
 				if (raw->flags & XIPointerEmulated)
 					return;
@@ -452,11 +451,11 @@ namespace pce::Input
 			case XI_ButtonPress:
 			case XI_ButtonRelease:
 			{
-				const XIDeviceEvent* dev = (const XIDeviceEvent*)ev.xgeneric.data;
-				const bool down = xie->evtype == XI_ButtonPress;
+				const XIDeviceEvent* dev = (const XIDeviceEvent*)data;
+				const bool down = evtype == XI_ButtonPress;
 				const int button = dev->detail;
 				if (button == 1) BackendSetMouseButton(VK_LBUTTON, down);
-				else if (button == 2) BackendSetMouseButton(VK_MIDDLE, down);
+				else if (button == 2) BackendSetMouseButton(VK_MBUTTON, down);
 				else if (button == 3) BackendSetMouseButton(VK_RBUTTON, down);
 				else if (button == 4) BackendWheel(120);
 				else if (button == 5) BackendWheel(-120);
@@ -466,6 +465,25 @@ namespace pce::Input
 			}
 			default: break;
 			}
+		}
+
+		void X11HandleEvent(XEvent& ev)
+		{
+			if (ev.type != GenericEvent)
+				return;
+#ifdef HAS_XGETEVENTDATA
+			// the data of the event is fetched with a call (libX11 1.8.7 and newer)
+			XGenericEventCookie* cookie = &ev.xcookie;
+			if (!XGetEventData(sX11.display, cookie))
+				return;
+			HandleXIEvent(cookie->evtype, cookie->data);
+			XFreeEventData(sX11.display, cookie);
+#else
+			const XIEvent* xie = (const XIEvent*)ev.xgeneric.data;
+			if (!xie)
+				return;
+			HandleXIEvent(xie->evtype, ev.xgeneric.data);
+#endif
 		}
 #endif
 

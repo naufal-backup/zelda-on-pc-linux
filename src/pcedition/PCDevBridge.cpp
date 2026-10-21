@@ -64,14 +64,14 @@ namespace pce::DevBridge
 		struct BmpInfoHeader
 		{
 			uint32 biSize;
-			int32 biWidth;
-			int32 biHeight;
+			sint32 biWidth;
+			sint32 biHeight;
 			uint16 biPlanes;
 			uint16 biBitCount;
 			uint32 biCompression;
 			uint32 biSizeImage;
-			int32 biXPelsPerMeter;
-			int32 biYPelsPerMeter;
+			sint32 biXPelsPerMeter;
+			sint32 biYPelsPerMeter;
 			uint32 biClrUsed;
 			uint32 biClrImportant;
 		};
