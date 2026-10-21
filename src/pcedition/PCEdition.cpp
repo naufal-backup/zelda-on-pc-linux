@@ -59,6 +59,9 @@ namespace pce
 
 		fs::path RoamingAppData();
 		fs::path UserDataDir();
+		// the file with the settings of the player (next to the executable, or in the data folder when the program is
+		// installed for the whole system)
+		fs::path GetSettingsFile();
 
 		bool IsDiscImage(const fs::path& p)
 		{
@@ -269,6 +272,19 @@ namespace pce
 		fs::path UserDataDir()
 		{
 			return Platform::GetUserDataDir();
+		}
+
+		// the file with the settings of the player (next to the executable, or in the data folder when the program is
+		// installed for the whole system)
+		fs::path GetSettingsFile()
+		{
+			if (sDevMode)
+				return GetDataDir() / "settings.ini";
+#ifndef _WIN32
+			if (!Platform::IsDirectoryWritable(sExeDir))
+				return GetDataDir() / "settings.ini";
+#endif
+			return sExeDir / "settings.ini";
 		}
 
 		// title id and title version from the contents of a code/app.xml
@@ -657,22 +673,9 @@ namespace pce
 		ActiveSettings::SetPaths(true, exePath, data, data, data, sExeDir, failedWriteAccess);
 	}
 
-	// the file with the settings of the player (next to the executable, or in the data folder when the program is
-	// installed for the whole system)
-	fs::path GetSettingsPath()
-	{
-		if (sDevMode)
-			return GetDataDir() / "settings.ini";
-#ifndef _WIN32
-		if (!Platform::IsDirectoryWritable(sExeDir))
-			return GetDataDir() / "settings.ini";
-#endif
-		return sExeDir / "settings.ini";
-	}
-
 	void InitBeforeCemu()
 	{
-		LoadSettings(GetSettingsPath());
+		LoadSettings(GetSettingsFile());
 		// locate game
 		for (auto& root : CandidateGameRoots())
 		{
