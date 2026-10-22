@@ -10,11 +10,13 @@
 #include "pcedition/PCProfiler.h"
 #include "pcedition/PCGraphics.h"
 #include "pcedition/PCMapIcons.h"
+#include "input/InputManager.h"
 
 #include <sstream>
 #include <map>
 #include <cmath>
 #include <thread>
+#include <shared_mutex>
 #include <boost/algorithm/string.hpp>
 
 #include "Common/socket.h"
@@ -487,6 +489,21 @@ namespace pce::DevBridge
 				{
 					Overlay::DebugMouse(f(1), a.size() > 2 ? f(2) : 0.0f, a.size() > 3 && u(3) != 0); // pcmouse <x> <y> [down] | pcmouse -1
 					return "ok";
+				}
+				if (c == "mousestate")
+				{
+					// the state of the mouse in the GUI layer and in the PC edition layer (the overlay uses both)
+					auto& instance = InputManager::instance();
+					const auto pos = instance.get_mouse_position(false);
+					bool guiLeft = false, guiRight = false;
+					{
+						std::shared_lock lock(instance.m_main_mouse.m_mutex);
+						guiLeft = instance.m_main_mouse.left_down;
+						guiRight = instance.m_main_mouse.right_down;
+					}
+					return fmt::format("gui pos=({},{}) left={} right={} | pce left={} right={}",
+						pos.x, pos.y, (int)guiLeft, (int)guiRight,
+						(int)Input::IsKeyDown(Key::MouseLeft), (int)Input::IsKeyDown(Key::MouseRight));
 				}
 				if (c == "barriers" && a.size() > 1)
 				{

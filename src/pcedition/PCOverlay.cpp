@@ -110,6 +110,13 @@ namespace pce::Overlay
 		double sToastTime = 0.0;
 		bool sConfirmQuit = false;
 		bool sMouseWasDown = false;
+		// The state of the left mouse button for the overlay. The state of the GUI layer (io.MouseDown) does not
+		// always know whether the button is down, the state of the PC edition layer does (it comes from the device
+		// itself when the raw input is used, from the window otherwise). Both are used, so the overlay works either way.
+		bool MouseDown()
+		{
+			return Input::IsKeyDown(Key::MouseLeft) || ImGui::GetIO().MouseDown[0];
+		}
 		int sFpsIndex = 1;
 		int sLanguageIndex = 0; // into sLanguages
 		// audio output devices of Cemu's audio API: [0] is the system's default (empty identifier)
@@ -1121,7 +1128,7 @@ namespace pce::Overlay
 				dl->AddText(sFonts.item, fs, tp, alpha(active ? kAccent : (hover ? kText : kTextDim)), n.c_str());
 				if (active)
 					dl->AddLine(ImVec2(tp.x, tp.y + ts.y + fs * 0.15f), ImVec2(tp.x + ts.x, tp.y + ts.y + fs * 0.15f), alpha(kAccent), 2.0f);
-				if (hover && io.MouseDown[0] && !sMouseWasDown)
+				if (hover && MouseDown() && !sMouseWasDown)
 					SelectPage(i);
 				tx += ts.x + gap;
 			}
@@ -1163,7 +1170,7 @@ namespace pce::Overlay
 			const float colValue = x0 + w * 0.58f;
 			const float colKey1 = x0 + w * 0.58f, colKey2 = x0 + w * 0.79f;
 			dl->PushClipRect(ImVec2(x0 - fs, listTop), ImVec2(x1 + fs, listBottom), true);
-			const bool mouseClicked = interactive && io.MouseDown[0] && !sMouseWasDown;
+			const bool mouseClicked = interactive && MouseDown() && !sMouseWasDown;
 			for (int i = 0; i < (int)items.size(); i++)
 			{
 				Item& it = items[i];
@@ -1211,7 +1218,7 @@ namespace pce::Overlay
 					else
 						snprintf(buf, sizeof(buf), it.fmt, *it.fval);
 					TextAligned(dl, sFonts.item, fs, ImVec2(r1.x - fs * 0.6f, ty), alpha(kText), buf, 1.0f);
-					if (hover && io.MouseDown[0] && io.MousePos.x >= bx0 - fs && io.MousePos.x <= bx1 + fs)
+					if (hover && MouseDown() && io.MousePos.x >= bx0 - fs && io.MousePos.x <= bx1 + fs)
 					{
 						const float nt = std::clamp((io.MousePos.x - bx0) / (bx1 - bx0), 0.0f, 1.0f);
 						float nv = it.fmin + nt * (it.fmax - it.fmin);
@@ -1430,7 +1437,7 @@ namespace pce::Overlay
 			const bool focused = Input::EmbeddedFocus();
 			const bool hover = area.Contains(io.MousePos);
 			Input::SetPanelHover(hover);
-			const bool clicked = io.MouseDown[0] && !sMouseWasDown;
+			const bool clicked = MouseDown() && !sMouseWasDown;
 			if (clicked && hover && !focused)
 				Input::SetEmbeddedFocus(true);
 			else if (clicked && !hover && focused && !sRebinding && !sConfirmQuit)
@@ -1624,7 +1631,7 @@ namespace pce::Overlay
 				dl->AddRect(area.Min, area.Max, kBorder, 0, 0, 1.5f);
 			}
 			const float pad = fs * 0.6f;
-			const bool clicked = io.MouseDown[0] && !sMouseWasDown && !dialog;
+			const bool clicked = MouseDown() && !sMouseWasDown && !dialog;
 			// line above the list
 			const char* head = dialog ? "Choose the file in the window that opened." : (count ? "Choose an amiibo:" : "No amiibo files yet: add the .bin file of one.");
 			TextAligned(dl, sFonts.small, fs * 0.8f, ImVec2(area.Min.x + pad, area.Min.y + pad * 0.7f), kTextDim, head);
@@ -1686,13 +1693,13 @@ namespace pce::Overlay
 					else
 					{
 						CancelAmiibo();
-						sMouseWasDown = io.MouseDown[0];
+						sMouseWasDown = MouseDown();
 						return false;
 					}
 				}
 				bx = r.Max.x + fs * 0.5f;
 			}
-			sMouseWasDown = io.MouseDown[0];
+			sMouseWasDown = MouseDown();
 			return true;
 		}
 	}
@@ -1735,12 +1742,12 @@ namespace pce::Overlay
 		if (embedded)
 		{
 			RenderEmbedded(panel, now);
-			sMouseWasDown = ImGui::GetIO().MouseDown[0];
+			sMouseWasDown = MouseDown();
 			return;
 		}
 		if (!sOpen.load() && sFonts.item && MapIcons::Render(now, dt))
 		{
-			sMouseWasDown = ImGui::GetIO().MouseDown[0];
+			sMouseWasDown = MouseDown();
 			return;
 		}
 
@@ -1820,6 +1827,6 @@ namespace pce::Overlay
 		DrawGuide(dl, p1.x - fs * 1.2f, p1.y - fs * 1.7f, fs, a, ListGuide());
 		DrawToast(dl, W * 0.5f, p0.y - fs * 1.2f, fs, now);
 		DrawQuitConfirmation(dl, W, H, fs);
-		sMouseWasDown = io.MouseDown[0];
+		sMouseWasDown = MouseDown();
 	}
 }

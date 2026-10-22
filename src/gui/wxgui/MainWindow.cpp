@@ -1564,11 +1564,15 @@ void MainWindow::OnMouseLeft(wxMouseEvent& event)
 {
 	auto& instance = InputManager::instance();
 
+	// The state of the event does not always contain the button that is pressed (on GTK the state of a button press
+	// is the state before the press), so the type of the event tells what happened.
+	const bool down = event.GetEventType() == wxEVT_LEFT_DOWN;
+
 	std::scoped_lock lock(instance.m_main_mouse.m_mutex);
-	instance.m_main_mouse.left_down = event.ButtonDown(wxMOUSE_BTN_LEFT);
+	instance.m_main_mouse.left_down = down;
 	auto physPos = ToPhys(event.GetPosition());
 	instance.m_main_mouse.position = { physPos.x, physPos.y };
-	if (event.ButtonDown(wxMOUSE_BTN_LEFT))
+	if (down)
 		instance.m_main_mouse.left_down_toggle = true;
 
 	event.Skip();
@@ -1578,11 +1582,13 @@ void MainWindow::OnMouseRight(wxMouseEvent& event)
 {
 	auto& instance = InputManager::instance();
 
+	const bool down = event.GetEventType() == wxEVT_RIGHT_DOWN;
+
 	std::scoped_lock lock(instance.m_main_mouse.m_mutex);
-	instance.m_main_mouse.right_down = event.ButtonDown(wxMOUSE_BTN_RIGHT);
+	instance.m_main_mouse.right_down = down;
 	auto physPos = ToPhys(event.GetPosition());
 	instance.m_main_mouse.position = { physPos.x, physPos.y };
-	if(event.ButtonDown(wxMOUSE_BTN_RIGHT))
+	if (down)
 		instance.m_main_mouse.right_down_toggle = true;
 
 	event.Skip();
