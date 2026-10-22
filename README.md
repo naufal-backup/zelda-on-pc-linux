@@ -114,6 +114,9 @@ the game's tutorial tips show your keys where the game has pictures of the GameP
   it, all of them at 60 FPS, all of them at 30 FPS or none.
 - **The filters of the renderer** (`Esc` → **Graphics**): the upscale and the downscale filter (linear, bicubic, bicubic
   hermite, nearest neighbour) and the **draw distance** of the objects and of the terrain.
+- **The Vulkan driver** (`Esc` → **Graphics** → **Vulkan Driver**): a machine can have more than one driver for the same
+  card (the proprietary driver of AMD and RADV, for example). The loader then offers all of them and the game takes
+  the first one; here the driver is picked by hand.
 - **The shader filters** (`Esc` → **Filters**): 22 presets of the picture (Clarity), the depth of field, the reflections
   and the anisotropic filtering of the textures.
 - **The cheats of the graphic pack** (`Esc` → **Cheats**): infinite hearts, stamina, arrows, amiibo, the divine
