@@ -189,28 +189,6 @@ namespace pce::Graphics
 	std::string PackOptionPreset(const Settings& s, int index);
 	// whether the AMD FidelityFX runtime is there: the frame generation needs it
 	bool FrameGenerationAvailable();
-
-	// AMD FSR 1.0: the picture of the game is drawn smaller and made bigger by the graphics card.
-	// The mode says how much smaller (the ratio of the picture of the game to the picture of the window).
-	struct FsrMode
-	{
-		const char* name;   // the name in the settings
-		float ratio;        // how much smaller the picture of the game is drawn
-		bool sharpen;       // the picture is sharpened again (RCAS) after it was made bigger
-	};
-	inline constexpr FsrMode kFsrModes[] = {
-		{"Quality", 1.5f, true},
-		{"Balanced", 1.7f, true},
-		{"Performance", 2.0f, false},
-		{"Ultra Performance", 3.0f, false},
-	};
-	inline constexpr int kFsrModeCount = (int)std::size(kFsrModes);
-	// the size of the picture of the game for a mode (the picture of the window divided by the ratio)
-	void FsrResolution(int mode, int& width, int& height);
-	// the name of the preset of the graphic pack that holds that size
-	std::string FsrResolutionPresetName(int mode);
-	// adds the sizes of the modes to the graphic pack of the graphics (the game draws them)
-	void AddFsrResolutions();
 	// A Vulkan driver (the ICD manifests the loader reads). A machine can have several of them for the same card
 	// (the proprietary driver of AMD and RADV, for example), and then the loader offers both.
 	struct VulkanDriver

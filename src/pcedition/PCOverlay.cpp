@@ -239,8 +239,7 @@ namespace pce::Overlay
 			                        old.masterModeMask != copy.masterModeMask || old.arrowDrawSpeed != copy.arrowDrawSpeed ||
 			                        old.durability != copy.durability || old.clarity != copy.clarity ||
 			                        old.depthOfField != copy.depthOfField || old.reflections != copy.reflections ||
-			                        old.reflectionRange != copy.reflectionRange || old.anisotropy != copy.anisotropy ||
-			                        old.fsrUpscaler != copy.fsrUpscaler || old.fsrSharpness != copy.fsrSharpness;
+			                        old.reflectionRange != copy.reflectionRange || old.anisotropy != copy.anisotropy;
 			if (gfxChanged)
 				Graphics::ApplyLive();
 			if (old.volume != copy.volume || old.speakers != copy.speakers || old.audioDevice != copy.audioDevice)
@@ -465,22 +464,6 @@ namespace pce::Overlay
 					}
 					p.items.push_back(it);
 				}
-				{
-					// AMD FSR 1.0: the picture of the game is drawn smaller and made bigger by the graphics card
-					std::vector<std::string> labels = {"Off"};
-					for (int i = 0; i < Graphics::kFsrModeCount; i++)
-						labels.push_back(Graphics::kFsrModes[i].name);
-					Item it = choice("FSR 1.0 Upscaler", &sEdit.fsrUpscaler, labels,
-									 "AMD FSR 1.0: the game draws its picture smaller and the graphics card makes it bigger "
-									 "again, with more detail than a simple scaling. Quality and Balanced also sharpen the "
-									 "picture. The size of the picture of the game changes with the mode: the game has to be "
-									 "started again for it.");
-					it.restart = true;
-					p.items.push_back(it);
-				}
-				p.items.push_back(slider("FSR Sharpness", &sEdit.fsrSharpness, 0.0f, 10.0f, 1.0f, "%.0f",
-										 "How sharp the picture is after AMD FSR made it bigger. 0 is the sharpest, 10 is the softest. "
-										 "It has no effect when the mode does not sharpen the picture."));
 				p.items.push_back(toggle("CPU Thread Pinning", &sEdit.cpuPinning,
 										 "Experimental. Ties the emulated Wii U CPU cores and the GPU thread to fixed processor cores that share one "
 										 "cache. A small gain on some CPUs, a large loss on others (Ryzen X3D with two cache groups): leave it off "

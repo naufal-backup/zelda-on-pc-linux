@@ -1,4 +1,4 @@
-# Fetches the community graphic packs Zelda on PC builds on (the graphics, the frame rate and the mods of Breath of the Wild) from
+# Fetches the two community graphic packs Zelda on PC builds on ("Graphics" and "FPS++" for Breath of the Wild) from
 # the official Cemu graphic pack release this version was tested with, and puts them next to the executable's resources.
 #
 # The packs are made by the Cemu community (https://github.com/cemu-project/cemu_graphic_packs, CC0-1.0). They are not
@@ -11,35 +11,7 @@ $ErrorActionPreference = "Stop"
 $version = 987
 $sha256 = "FFF8DF5D8122B18871C0485FE266873644ED5254C15EDE727BAD1EF5F383951D"
 $url = "https://github.com/cemu-project/cemu_graphic_packs/releases/download/Github$version/graphicPacks$version.zip"
-$packs = @(
-    "BreathOfTheWild/Graphics/",
-    "BreathOfTheWild/Mods/FPS++/",
-    "BreathOfTheWild/Mods/DrawDistance/",
-    "BreathOfTheWild/Mods/Weather/",
-    "BreathOfTheWild/Mods/RemoveFog/",
-    "BreathOfTheWild/Mods/CelShading/",
-    "BreathOfTheWild/Mods/DayLength/",
-    "BreathOfTheWild/Mods/HUDElements/",
-    "BreathOfTheWild/Mods/CameraSensitivity/",
-    "BreathOfTheWild/Mods/MenuCursorSpeed/",
-    "BreathOfTheWild/Mods/DivineLaserBeam/",
-    "BreathOfTheWild/Mods/GlowingGuardianColor/",
-    "BreathOfTheWild/Enhancements/",
-    "BreathOfTheWild/Cheats/ArrowDrawSpeed/",
-    "BreathOfTheWild/Cheats/Durability/",
-    "BreathOfTheWild/Cheats/MasterModeOptions/",
-    "BreathOfTheWild/Cheats/9999StampsLimit/",
-    "BreathOfTheWild/Cheats/PreventRandomSpawns/",
-    "BreathOfTheWild/Cheats/InfiniteAmiibo/",
-    "BreathOfTheWild/Cheats/InfiniteArrows/",
-    "BreathOfTheWild/Cheats/InfiniteDaruk/",
-    "BreathOfTheWild/Cheats/InfiniteHearts/",
-    "BreathOfTheWild/Cheats/InfiniteMipha/",
-    "BreathOfTheWild/Cheats/InfiniteMotorcycleEnergy/",
-    "BreathOfTheWild/Cheats/InfiniteRevali/",
-    "BreathOfTheWild/Cheats/InfiniteStamina/",
-    "BreathOfTheWild/Cheats/InfiniteUrbosa/",
-)
+$packs = @("BreathOfTheWild/Graphics/", "BreathOfTheWild/Mods/FPS++/")
 
 $root = Split-Path -Parent $PSScriptRoot
 if (-not $Destination) { $Destination = Join-Path $root "bin\resources\pcedition\graphicPacks" }
@@ -74,11 +46,7 @@ try {
             [IO.Compression.ZipFileExtensions]::ExtractToFile($entry, $out, $true)
             $count++
         }
-        if ($count -eq 0) {
-            # the pack is not in this release of the community: the game finds it in the packs of the player's Cemu
-            Write-Warning "$pack was not found in graphicPacks$version.zip (it is looked for in the packs of Cemu at the start)"
-            continue
-        }
+        if ($count -eq 0) { throw "$pack was not found in graphicPacks$version.zip" }
         Write-Output "$pack ($count files)"
     }
 }
@@ -86,7 +54,7 @@ finally {
     $archive.Dispose()
 }
 Set-Content -Encoding utf8 (Join-Path $Destination "README.txt") @"
-Cemu community graphic packs v$version (Breath of the Wild: graphics, frame rate, mods and cheats)
+Cemu community graphic packs v$version (Breath of the Wild: Graphics, FPS++)
 Source:  https://github.com/cemu-project/cemu_graphic_packs
 License: CC0-1.0
 "@

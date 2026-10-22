@@ -105,8 +105,8 @@ the game's tutorial tips show your keys where the game has pictures of the GameP
 - Display mode: windowed, borderless or exclusive fullscreen (`Esc` → **Graphics**, `Alt+Enter` toggles a window),
   cursor captured while playing and released in menus.
 - **Settings in the game's own pause menu.** `Esc` opens it on its System page (save, load, options), where the PC
-  settings take the place of the game's picture of the GamePad: camera, controls, motion, graphics, filters, audio, game,
-  cheats and mods. Mouse or keyboard (`→` to go in, `Esc` to come out). On the title screen `Esc` opens them on their own.
+  settings take the place of the game's picture of the GamePad: camera, controls, motion, graphics, filters, audio, game
+  and cheats. Mouse or keyboard (`→` to go in, `Esc` to come out). On the title screen `Esc` opens them on their own.
   They are stored in a readable `settings.ini`.
 - Resolution from 720p to 4K, frame rate limits from 30 to 244 FPS with corrected game speed and physics, shadows,
   anti-aliasing, V-Sync.
@@ -122,14 +122,6 @@ the game's tutorial tips show your keys where the game has pictures of the GameP
 - **The cheats of the graphic pack** (`Esc` → **Cheats**): infinite hearts, stamina, arrows, amiibo, the divine
   protections, the bow draw speed, the durability and the options of the master mode. The page is only there when it is
   wanted (`Esc` → **Game** → **Enable Cheats**).
-- **The mods of the graphic packs** (`Esc` → **Mods**): the weather, the fog of the distance, the cel shading, the length
-  of the day, the time of the day, the speed of the clouds, the speed of the cursor of the menus, the speed of the
-  camera of the game, the colours of the guardians and of the divine beams, the draw distance and the level of detail.
-  They are changed while the game runs, without a restart.
-- **AMD FSR 1.0** (`Esc` → **Graphics** → **FSR 1.0 Upscaler**): the game draws its picture smaller and the graphics
-  card makes it bigger again (EASU), with more detail than a simple scaling; the picture is then sharpened (RCAS).
-  Quality (1.5x), Balanced (1.7x), Performance (2x) or Ultra Performance (3x), and the sharpness of the picture is a
-  setting of its own. No library of AMD is needed.
 - Audio: volume (applied at once), speakers (mono, stereo, 5.1 surround) and the output device.
 - **Aspect ratio:** 16:9, 16:10, 21:9 and 32:9, with the HUD at the edges of the screen or centred on ultrawide. An
   ultrawide main display is detected. New, and so far tried in a window only, not on an ultrawide display.

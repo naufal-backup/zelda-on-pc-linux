@@ -1,6 +1,5 @@
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanRenderer.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanFSR.h"
-#include "Cafe/HW/Latte/Renderer/Vulkan/VulkanFSR1.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanFFX.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanAPI.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/LatteTextureVk.h"
@@ -29,11 +28,8 @@
 
 #include "Cafe/TitleList/GameInfo.h"
 
-#include "pcedition/PCSettings.h"
-
 #include "Cafe/HW/Latte/Core/LatteTiming.h" // vsync control
 
-#include <algorithm>
 #include <cstdint>
 #include <glslang/Public/ShaderLang.h>
 
@@ -3516,54 +3512,6 @@ void VulkanRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 	memoryBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_SHADER_READ_BIT;
 	vkCmdPipelineBarrier(m_state.currentCommandBuffer, srcStage, dstStage, 0, 1, &memoryBarrier, 0, nullptr, 0, nullptr);
 
-	// Zelda on PC: AMD FSR 1.0 (EASU + RCAS): the picture of the game is made bigger by the GPU
-	// before it is drawn in the window (the drawing itself then only copies it)
-	VkImageView fsrView = VK_NULL_HANDLE;
-	VkSampler fsrSampler = VK_NULL_HANDLE;
-	// the settings of FSR are read when they change (they are not read for every picture)
-	if (m_fsrSettingsRev != pce::GetSettingsRevision())
-	{
-		m_fsrSettingsRev = pce::GetSettingsRevision();
-		const auto settings = pce::GetSettings();
-		m_fsrUpscaler = settings.fsrUpscaler;
-		m_fsrSharpness = settings.fsrSharpness;
-	}
-	if (!padView && m_fsrUpscaler > 0 && imageWidth > 0 && imageHeight > 0)
-	{
-		auto* baseTex = (LatteTextureVk*)texViewVk->baseTexture;
-		sint32 srcW = 0, srcH = 0;
-		baseTex->GetEffectiveSize(srcW, srcH, 0);
-		if (srcW > 0 && srcH > 0 && srcW < imageWidth)
-		{
-			if (!m_fsr1)
-				m_fsr1 = std::make_unique<VulkanFSR1>(m_logicalDevice, m_physicalDevice);
-			// the sharpness of RCAS: the setting goes from 0 (the sharpest) to 10 (the softest), and the
-			// sharpness of the algorithm is the number of times it is halved
-			const float sharpness = std::clamp(m_fsrSharpness * 0.4f, 0.0f, 4.0f);
-			// the quick modes do not sharpen the picture (RCAS is skipped)
-			const bool sharpen = m_fsrUpscaler <= 2;
-			// the view of the picture of the game (the same one the usual drawing uses)
-			VkImageView srcView = texViewVk->GetViewRGBA()->m_textureImageView;
-			fsrView = m_fsr1->Upscale(m_state.currentCommandBuffer, srcView, baseTex->GetDefaultLayout(), (uint32)srcW, (uint32)srcH, (uint32)imageWidth,
-									  (uint32)imageHeight, sharpness, sharpen);
-			if (fsrView != VK_NULL_HANDLE)
-			{
-				// the sampler of the picture (the same as the one of the textures of the game)
-				fsrSampler = texViewVk->GetDefaultTextureSampler(false);
-				if (m_fsrBlitSet && m_fsrBlitView != fsrView)
-				{
-					vkFreeDescriptorSets(m_logicalDevice, m_descriptorPool, 1, &m_fsrBlitSet);
-					m_fsrBlitSet = VK_NULL_HANDLE;
-				}
-				m_fsrBlitView = fsrView;
-				if (!m_fsrBlitSet)
-					m_fsrBlitSet = backbufferBlit_createDescriptorSet(m_swapchainDescriptorSetLayout, fsrView, fsrSampler);
-				// the picture is already the size of the window: it is only copied
-				shader = RendererOutputShader::s_copy_shader;
-			}
-		}
-	}
-
 	auto pipeline = backbufferBlit_createGraphicsPipeline(m_swapchainDescriptorSetLayout, padView, shader);
 
 	VkRenderPassBeginInfo renderPassInfo = {};
@@ -3587,7 +3535,7 @@ void VulkanRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 	scissor.extent = chainInfo.getExtent();
 	vkCmdSetScissor(m_state.currentCommandBuffer, 0, 1, &scissor);
 
-	auto descriptSet = fsrView != VK_NULL_HANDLE ? m_fsrBlitSet : backbufferBlit_createDescriptorSet(m_swapchainDescriptorSetLayout, texViewVk, useLinearTexFilter);
+	auto descriptSet = backbufferBlit_createDescriptorSet(m_swapchainDescriptorSetLayout, texViewVk, useLinearTexFilter);
 
 	vkCmdBeginRenderPass(m_state.currentCommandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -3620,53 +3568,6 @@ void VulkanRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 
 	// mark current swapchain image as well defined
 	chainInfo.hasDefinedSwapchainImage = true;
-}
-
-VkDescriptorSet VulkanRenderer::backbufferBlit_createDescriptorSet(VkDescriptorSetLayout descriptor_set_layout, VkImageView imageView, VkSampler sampler)
-{
-	VkDescriptorSetAllocateInfo allocInfo = {};
-	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-	allocInfo.descriptorPool = m_descriptorPool;
-	allocInfo.descriptorSetCount = 1;
-	allocInfo.pSetLayouts = &descriptor_set_layout;
-
-	VkDescriptorSet result;
-	if (vkAllocateDescriptorSets(m_logicalDevice, &allocInfo, &result) != VK_SUCCESS)
-		UnrecoverableError("Failed to allocate descriptor sets for backbuffer blit");
-	performanceMonitor.vk.numDescriptorSets.increment();
-
-	VkDescriptorImageInfo imageInfo = {};
-	imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-	imageInfo.imageView = imageView;
-	imageInfo.sampler = sampler;
-
-	VkWriteDescriptorSet descriptorWrites[2]{};
-
-	VkWriteDescriptorSet& samplerWrite = descriptorWrites[0];
-	samplerWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	samplerWrite.dstSet = result;
-	samplerWrite.dstBinding = 0;
-	samplerWrite.dstArrayElement = 0;
-	samplerWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	samplerWrite.descriptorCount = 1;
-	samplerWrite.pImageInfo = &imageInfo;
-
-	VkWriteDescriptorSet& uniformBufferWrite = descriptorWrites[1];
-	uniformBufferWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	uniformBufferWrite.dstSet = result;
-	uniformBufferWrite.dstBinding = 1;
-	uniformBufferWrite.descriptorCount = 1;
-	uniformBufferWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-
-	VkDescriptorBufferInfo uniformBufferInfo{};
-	uniformBufferInfo.buffer = m_uniformVarBuffer;
-	uniformBufferInfo.offset = 0;
-	uniformBufferInfo.range = sizeof(RendererOutputShader::OutputUniformVariables);
-	uniformBufferWrite.pBufferInfo = &uniformBufferInfo;
-
-	vkUpdateDescriptorSets(m_logicalDevice, std::size(descriptorWrites), descriptorWrites, 0, nullptr);
-	performanceMonitor.vk.numDescriptorSamplerTextures.increment();
-	return result;
 }
 
 void VulkanRenderer::CreateDescriptorPool()
