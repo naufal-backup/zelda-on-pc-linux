@@ -1,0 +1,47 @@
+diff --git a/ffx-api/CMakeLists.txt b/ffx-api/CMakeLists.txt
+index 83e20ba..42f2db8 100644
+--- a/ffx-api/CMakeLists.txt
++++ b/ffx-api/CMakeLists.txt
+@@ -141,7 +141,7 @@ set(FFX_AUTO_COMPILE_SHADERS ON)
+ set(FFX_BUILD_AS_DLL OFF)
+ add_subdirectory(../sdk sdk)
+ 
+-target_link_libraries(amd_fidelityfx_${FFX_PLATFORM_NAME} PRIVATE ffx_fsr2_${CMAKE_GENERATOR_PLATFORM} ffx_fsr3upscaler_${CMAKE_GENERATOR_PLATFORM} ffx_opticalflow_${CMAKE_GENERATOR_PLATFORM} ffx_frameinterpolation_${CMAKE_GENERATOR_PLATFORM} DXGI)
++target_link_libraries(amd_fidelityfx_${FFX_PLATFORM_NAME} PRIVATE ffx_fsr2_${FFX_PLATFORM_NAME} ffx_fsr3upscaler_${FFX_PLATFORM_NAME} ffx_opticalflow_${FFX_PLATFORM_NAME} ffx_frameinterpolation_${FFX_PLATFORM_NAME})
+ if (FFX_API_BACKEND STREQUAL VK_X64)
+ 	find_package(Vulkan REQUIRED)
+ 	target_link_libraries(amd_fidelityfx_${FFX_PLATFORM_NAME} PRIVATE Vulkan::Headers ffx_backend_vk_${CMAKE_GENERATOR_PLATFORM})
+diff --git a/sdk/CMakeLists.txt b/sdk/CMakeLists.txt
+index bfa1349..df68239 100644
+--- a/sdk/CMakeLists.txt
++++ b/sdk/CMakeLists.txt
+@@ -88,8 +88,10 @@ elseif(CMAKE_GENERATOR_PLATFORM STREQUAL "arm64" OR CMAKE_EXE_LINKER_FLAGS STREQ
+     set(FFX_PLATFORM_NAME arm64)
+ elseif(CMAKE_GENERATOR_PLATFORM STREQUAL "arm64ec" OR CMAKE_EXE_LINKER_FLAGS STREQUAL "/machine:ARM64EC")
+ 	set(FFX_PLATFORM_NAME arm64ec)
++elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64|ARM64")
++    set(FFX_PLATFORM_NAME arm64)
+ else()
+-    message(FATAL_ERROR "Unsupported target platform \"${CMAKE_GENERATOR_PLATFORM}\"")
++    set(FFX_PLATFORM_NAME x64)
+ endif()
+ 
+ # Pre-compile shaders
+diff --git a/sdk/toolchain.cmake b/sdk/toolchain.cmake
+index 61aba48..7e38fd7 100644
+--- a/sdk/toolchain.cmake
++++ b/sdk/toolchain.cmake
+@@ -46,7 +46,12 @@ if (MSVC)
+ 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W3 /GR- /fp:fast /GS /Gy")
+ endif()
+ 
+-if (FFX_API_BACKEND STREQUAL DX12_X64 OR
++if (FFX_API_BACKEND STREQUAL VK_X64 AND NOT WIN32)
++
++	# The Vulkan build on Linux: the toolchain file was written for the Direct3D build, which only ever runs on
++	# Windows. Nothing to set here: the compiler, the loader and the headers are the ones of the system.
++
++elseif (FFX_API_BACKEND STREQUAL DX12_X64 OR
+ 	FFX_API_BACKEND STREQUAL VK_X64)
+ 
+ 	set(CMAKE_RELWITHDEBINFO_POSTFIX drel)

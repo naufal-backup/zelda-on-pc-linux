@@ -39,6 +39,16 @@ mkdir -p "$STAGE"
 cp "$EXE" "$STAGE/ZeldaOnPC"
 chmod +x "$STAGE/ZeldaOnPC"
 
+# the AMD FidelityFX runtime: the FSR 3 frame generation and the upscaler live in it, the loader looks for it next to
+# the executable (the SDK has no build for Linux, the CI builds it)
+FFX_RUNTIME="$ROOT/dependencies/FidelityFX-SDK/ffx-api/bin/libamd_fidelityfx_vk.so"
+if [ -f "$FFX_RUNTIME" ]; then
+  cp "$FFX_RUNTIME" "$STAGE/"
+  echo "FidelityFX runtime: $(basename "$FFX_RUNTIME")"
+else
+  echo "FidelityFX runtime: not built, the FSR features stay off" >&2
+fi
+
 # the game profiles of the three regions
 if [ -d "$BIN/gameProfiles/default" ]; then
   mkdir -p "$STAGE/gameProfiles/default"

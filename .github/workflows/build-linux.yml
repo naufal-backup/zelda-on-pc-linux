@@ -56,6 +56,7 @@ jobs:
             libcurl4-openssl-dev libssl-dev libusb-1.0-0-dev \
             libasound2-dev libpulse-dev libudev-dev libdbus-1-dev libfontconfig1-dev \
             libbluetooth-dev \
+            libvulkan-dev \
             unzip zip
 
       - name: Restore the vcpkg cache
@@ -84,6 +85,20 @@ jobs:
 
       - name: Build
         run: cmake --build build/release -- -k 0
+
+      - name: Build the AMD FidelityFX runtime
+        # The FSR 3 frame generation and the upscaler are in the runtime of AMD (the loader looks for it next to the
+        # executable). The SDK has no build for Linux, so it is built here from the sources in the repository - the
+        # patch adapts the build system of the SDK to Linux (see tools/ffx-linux-build.patch).
+        continue-on-error: true # the FSR features stay off when this does not work
+        run: |
+          cd dependencies/FidelityFX-SDK
+          git apply ../../tools/ffx-linux-build.patch || true
+          cd ../..
+          cmake -S dependencies/FidelityFX-SDK/ffx-api -B build/ffx -G Ninja \
+            -DFFX_API_BACKEND=VK_X64 \
+            -DCMAKE_BUILD_TYPE=Release
+          cmake --build build/ffx
 
       - name: Package
         run: |

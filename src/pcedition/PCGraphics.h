@@ -31,6 +31,17 @@ namespace pce::Graphics
 		int width, height;
 		std::string label;
 	};
+	// A Vulkan driver (the ICD manifests the loader reads). A machine can have several of them for the same card
+	// (the proprietary driver of AMD and RADV, for example), and then the loader offers both.
+	struct VulkanDriver
+	{
+		std::string manifest;  // the path of the ICD manifest
+		std::string name;      // the name shown in the settings
+	};
+	// the drivers installed on this machine (empty when the list cannot be read)
+	const std::vector<VulkanDriver>& GetVulkanDrivers();
+	// tells the Vulkan loader which driver to use (the setting with the manifest of the driver; empty: all of them)
+	void ApplyVulkanDriver();
 	// Aspect ratio the game renders in: 1 16:9, 2 16:10, 3 21:9, 4 32:9. For Settings::aspectRatio = 0 it follows the
 	// main display, for the ultrawide formats only (a 16:10 display keeps 16:9 unless 16:10 is chosen).
 	int EffectiveAspect(int setting);

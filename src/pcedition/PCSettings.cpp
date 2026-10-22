@@ -218,6 +218,7 @@ namespace pce
 			Get(m, "Graphics", "Reflections", s.reflections);
 			Get(m, "Graphics", "ReflectionRange", s.reflectionRange);
 			Get(m, "Graphics", "Anisotropy", s.anisotropy);
+			Get(m, "Graphics", "VulkanDriver", s.vulkanDriver);
 			Get(m, "Graphics", "ArrowDrawSpeed", s.arrowDrawSpeed);
 			Get(m, "Graphics", "Durability", s.durability);
 			Get(m, "Graphics", "CheatMask", s.cheatMask);
@@ -329,6 +330,7 @@ namespace pce
 		o << "Reflections=" << s.reflections << "\n";
 		o << "ReflectionRange=" << s.reflectionRange << "\n";
 		o << "Anisotropy=" << s.anisotropy << "\n";
+			o << "VulkanDriver=" << s.vulkanDriver << "\n";
 		o << "ArrowDrawSpeed=" << s.arrowDrawSpeed << "\n";
 		o << "Durability=" << s.durability << "\n";
 		o << "CheatMask=" << s.cheatMask << "\n";

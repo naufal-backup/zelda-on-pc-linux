@@ -5,6 +5,9 @@
 #include "pcedition/PCPlatform.h"
 
 #include <fstream>
+#include <cstring>
+#include <cctype>
+#include <cstdlib>
 #include <boost/algorithm/string.hpp>
 
 #include "config/ActiveSettings.h"
@@ -651,6 +654,83 @@ blr
 	{
 		static const std::vector<std::string> r = {"Automatic", "16:9", "16:10", "21:9 (ultrawide)", "32:9 (super ultrawide)"};
 		return r;
+	}
+
+	// The name of a Vulkan driver, from the name of its ICD manifest: radeon_icd.json -> AMD RADEON,
+	// amd_pro_icd64.json -> AMD PRO. The manifest of the proprietary driver of AMD calls itself a layer, so the
+	// file name is the one that tells.
+	static std::string VulkanDriverName(const fs::path& manifest)
+	{
+		std::string base = manifest.filename().string();
+		const size_t dot = base.find_last_of('.');
+		if (dot != std::string::npos)
+			base = base.substr(0, dot);
+		for (const char* suffix : {"_icd64", "_icd32", "_icd"})
+		{
+			const size_t n = strlen(suffix);
+			if (base.size() > n && base.compare(base.size() - n, n, suffix) == 0)
+			{
+				base = base.substr(0, base.size() - n);
+				break;
+			}
+		}
+		if (base == "radeon")
+			return "AMD RADEON";
+		if (base == "amd_pro")
+			return "AMD PRO";
+		if (base.empty())
+			return "Vulkan driver";
+		base[0] = (char)std::toupper((unsigned char)base[0]);
+		return base;
+	}
+
+	const std::vector<VulkanDriver>& GetVulkanDrivers()
+	{
+		static std::vector<VulkanDriver> sDrivers;
+		static bool sRead = false;
+		if (sRead)
+			return sDrivers;
+		sRead = true;
+		static const char* kDirs[] = {"/usr/share/vulkan/icd.d", "/etc/vulkan/icd.d", "/usr/local/share/vulkan/icd.d"};
+		for (const char* dir : kDirs)
+		{
+			std::error_code ec;
+			if (!fs::is_directory(dir, ec))
+				continue;
+			for (const auto& entry : fs::directory_iterator(dir, ec))
+			{
+				if (ec)
+					break;
+				if (entry.path().extension() != ".json")
+					continue;
+				// only the manifests of a driver (a manifest can also describe a layer)
+				std::ifstream f(entry.path());
+				const std::string content((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+				if (content.find("\"ICD\"") == std::string::npos)
+					continue;
+				const std::string name = VulkanDriverName(entry.path());
+				bool known = false;
+				for (const auto& d : sDrivers)
+					known = known || d.name == name;
+				if (!known)
+					sDrivers.push_back({entry.path().string(), name});
+			}
+		}
+		return sDrivers;
+	}
+
+	void ApplyVulkanDriver()
+	{
+#if !BOOST_OS_WINDOWS
+		const std::string manifest = GetSettings().vulkanDriver;
+		if (manifest.empty())
+			return;
+		// the loader reads the variable when it starts: only the chosen driver is loaded, so the game sees one device
+		// for the card instead of one per driver
+		setenv("VK_DRIVER_FILES", manifest.c_str(), 1);
+		setenv("VK_ICD_FILENAMES", manifest.c_str(), 1);
+		cemuLog_log(LogType::Force, "PCE: Vulkan driver set to {}", manifest);
+#endif
 	}
 
 	const std::vector<ResolutionOption>& GetResolutionOptions(int aspect)

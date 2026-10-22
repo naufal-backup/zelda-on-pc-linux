@@ -701,6 +701,8 @@ namespace pce
 		UI::RegisterHLE();
 		Prompts::LoadGuideLanguage();
 		Graphics::PrepareGraphicPacks();
+		// the Vulkan loader reads the driver list when it starts: this has to be before the renderer is made
+		Graphics::ApplyVulkanDriver();
 	}
 
 	void ReapplyForcedConfig()

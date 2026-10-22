@@ -179,6 +179,8 @@ namespace pce::Overlay
 			"Show Debug Options", "1-Hit-Kill Protection", "No Ganon Stun Lock", "Randomized Guardian Fire",
 			"Shorter Enemy Notice", "Last Play Hard Mode", "Nerf Cooking",
 		};
+		// the Vulkan driver: 0 = all of them (the loader decides), 1..n = the n-th driver of the list
+		int sVulkanDriverIndex = 0;
 
 		double Now()
 		{
@@ -204,6 +206,12 @@ namespace pce::Overlay
 			for (int i = 0; i < kMasterModeCount; i++)
 				if (sMasterModeSwitch[i])
 					sEdit.masterModeMask |= 1u << i;
+			// the Vulkan driver: the index back into the manifest of the driver
+			{
+				const auto& drivers = Graphics::GetVulkanDrivers();
+				const int idx = std::clamp(sVulkanDriverIndex, 0, (int)drivers.size());
+				sEdit.vulkanDriver = (idx == 0) ? std::string() : drivers[idx - 1].manifest;
+			}
 			const Settings old = GetSettings();
 			Settings copy = sEdit;
 			UpdateSettings([&](Settings& s) { s = copy; });
@@ -417,6 +425,23 @@ namespace pce::Overlay
 				p.items.push_back(choice("Draw Distance (Terrain)", &sEdit.drawDistanceObjects,
 										 {"Low (0.75x)", "Medium (1x)", "High (1.25x)", "Ultra (1.5x)"},
 										 "How far the terrain, the buildings and the plants are drawn."));
+				{
+					// the Vulkan driver: a machine can have several of them for the same card
+					const auto& drivers = Graphics::GetVulkanDrivers();
+					sVulkanDriverIndex = 0;
+					for (size_t i = 0; i < drivers.size(); i++)
+						if (drivers[i].manifest == sEdit.vulkanDriver)
+							sVulkanDriverIndex = (int)i + 1;
+					std::vector<std::string> labels = {"Automatic"};
+					for (const auto& d : drivers)
+						labels.push_back(d.name);
+					Item it = choice("Vulkan Driver", &sVulkanDriverIndex, labels,
+									 "The driver the game is rendered with. A machine can have more than one for the same card "
+									 "(the proprietary driver of AMD and RADV, for example): the loader then offers them all "
+									 "and the game takes the first one. Applied on next launch.");
+					it.restart = true;
+					p.items.push_back(it);
+				}
 				p.items.push_back(toggle("V-Sync", &sEdit.vsync, "Synchronize with the display refresh rate."));
 				p.items.push_back(choice("Frame Generation", &sEdit.frameGeneration, {"Off", "AMD FSR 3"},
 										 "AMD FSR 3: a generated frame between every two real ones. The Frame Rate limit then counts the frames "
