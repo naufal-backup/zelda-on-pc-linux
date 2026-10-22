@@ -284,7 +284,7 @@ namespace pce::Overlay
 				p.items.push_back(slider("Mouse Sensitivity", &sEdit.mouseSensitivity, 0.05f, 6.0f, 0.05f, "%.2f", "Camera rotation per mouse movement: 1:1, no acceleration. Same scale as Source engine games (0.022 degrees per count)."));
 				p.items.push_back(slider("Vertical Sensitivity", &sEdit.mouseSensitivityY, 0.25f, 2.0f, 0.05f, "%.2fx", "Vertical sensitivity relative to horizontal."));
 				p.items.push_back(slider("Aiming Sensitivity", &sEdit.aimSensitivity, 0.1f, 2.0f, 0.05f, "%.2fx", "Sensitivity multiplier while drawing the bow or using the scope."));
-				p.items.push_back(slider("Aim Limit", &sEdit.aimLimit, 0.0f, 360.0f, 5.0f, "%.0f°", "Hard limit of the camera rotation caused by the mouse, in degrees. The camera stops at the limit instead of spinning around. 0 (∞) = no limit: the camera can turn all the way around."));
+				p.items.push_back(slider("Aim Limit", &sEdit.aimLimit, 0.0f, 360.0f, 5.0f, "%.0f°", "Hard limit of the camera rotation caused by the mouse, in degrees. The camera stops at the limit instead of spinning around. OFF = no limit: the camera can turn all the way around."));
 				p.items.back().zeroIsInf = true;
 				p.items.push_back(toggle("Invert Horizontal", &sEdit.invertX, "Invert left / right camera movement."));
 				p.items.push_back(toggle("Invert Vertical", &sEdit.invertY, "Invert up / down camera movement."));
@@ -1207,7 +1207,7 @@ namespace pce::Overlay
 					dl->AddCircleFilled(ImVec2(bx0 + (bx1 - bx0) * t, by), fs * 0.28f, alpha(sel ? kAccent : kText));
 					char buf[64];
 					if (it.zeroIsInf && *it.fval <= it.fmin)
-						snprintf(buf, sizeof(buf), "\xE2\x88\x9E"); // ∞
+						snprintf(buf, sizeof(buf), "OFF"); // no limit (the font has no symbol for infinity)
 					else
 						snprintf(buf, sizeof(buf), it.fmt, *it.fval);
 					TextAligned(dl, sFonts.item, fs, ImVec2(r1.x - fs * 0.6f, ty), alpha(kText), buf, 1.0f);
