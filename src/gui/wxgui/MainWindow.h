@@ -141,6 +141,11 @@ public:
 
 	static void ShowCursor(bool state);
 	void UpdatePCECursor();
+	// the position of the pointer of the desktop, relative to the window: the mouse events of the window do not
+	// always reach the canvas (on Wayland they can be delivered to another widget), so the position is also read
+	// from the desktop
+	void UpdatePointerPosition();
+	bool m_pointer_bound = false;
 	bool m_pce_cursor_captured = false;
 	bool m_pce_was_foreground = false;      // the game window was the last real foreground window
 	unsigned long long m_pce_no_foreground_since = 0;

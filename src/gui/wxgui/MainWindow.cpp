@@ -1383,6 +1383,25 @@ void MainWindow::UpdatePCECursor()
 #endif
 }
 
+void MainWindow::UpdatePointerPosition()
+{
+	// The position of the pointer of the desktop: the events of the window do not always reach the canvas, so the
+	// position is read from the desktop as well (the menus of the game and the PC settings need it).
+	if (!g_window_info.app_active.load())
+		return;
+	const wxPoint screen = wxGetMousePosition();
+	const wxPoint origin = GetScreenPosition();
+	const wxSize client = GetClientSize();
+	const int x = screen.x - origin.x;
+	const int y = screen.y - origin.y;
+	if (x < 0 || y < 0 || x >= client.GetWidth() || y >= client.GetHeight())
+		return; // the pointer is outside of the window
+	auto& instance = InputManager::instance();
+	std::scoped_lock lock(instance.m_main_mouse.m_mutex);
+	const wxPoint phys = ToPhys(wxPoint(x, y), this);
+	instance.m_main_mouse.position = { phys.x, phys.y };
+}
+
 void MainWindow::ShowCursor(bool state)
 {
 	#if BOOST_OS_WINDOWS
@@ -1824,6 +1843,18 @@ void MainWindow::CreateCanvas()
 		m_render_canvas->Bind(wxEVT_MOTION, [](wxMouseEvent& e) { pce::Gui::OnMotion(e); });
 	}
 
+	// The mouse events of the window do not always reach the canvas (on Wayland they can be delivered to another
+	// widget of the window), so the window gets them as well.
+	if (!m_pointer_bound)
+	{
+		m_pointer_bound = true;
+		this->Bind(wxEVT_MOTION, &MainWindow::OnMouseMove, this);
+		this->Bind(wxEVT_LEFT_DOWN, &MainWindow::OnMouseLeft, this);
+		this->Bind(wxEVT_LEFT_UP, &MainWindow::OnMouseLeft, this);
+		this->Bind(wxEVT_RIGHT_DOWN, &MainWindow::OnMouseRight, this);
+		this->Bind(wxEVT_RIGHT_UP, &MainWindow::OnMouseRight, this);
+	}
+
 	// key events
 	m_render_canvas->Bind(wxEVT_KEY_UP, &MainWindow::OnKeyUp, this);
 	m_render_canvas->Bind(wxEVT_KEY_DOWN, &MainWindow::OnKeyDown, this);
@@ -2085,6 +2116,7 @@ void MainWindow::OnTimer(wxTimerEvent& event)
 				ApplyPCEDisplayMode(mode);
 		}
 		UpdatePCECursor();
+		UpdatePointerPosition();
 		return;
 	}
 	if(m_update_available.valid() && future_is_ready(m_update_available))

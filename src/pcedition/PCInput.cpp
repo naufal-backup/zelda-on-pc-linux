@@ -9,6 +9,7 @@
 #include "pcedition/PCInputBackend.h"
 #include "pcedition/PCPlatform.h"
 #include "pcedition/PCVK.h"
+#include "input/InputManager.h"
 
 #include <deque>
 #include <thread>
@@ -983,6 +984,23 @@ namespace pce::Input
 		if (!sFocused.load())
 			return;
 		SetKey(vk, down);
+		// The mouse events of the window do not always reach the GUI layer (on Wayland they can be delivered to
+		// another widget of the window), so the state of the button is given to it as well: the menus of the game
+		// and the PC settings read the button and the position of the pointer from there.
+		auto& instance = InputManager::instance();
+		std::scoped_lock lock(instance.m_main_mouse.m_mutex);
+		if (vk == VK_LBUTTON)
+		{
+			instance.m_main_mouse.left_down = down;
+			if (down)
+				instance.m_main_mouse.left_down_toggle = true;
+		}
+		else if (vk == VK_RBUTTON)
+		{
+			instance.m_main_mouse.right_down = down;
+			if (down)
+				instance.m_main_mouse.right_down_toggle = true;
+		}
 	}
 
 	void BackendWheel(sint32 delta)
