@@ -2,6 +2,7 @@
 #include "pcedition/PCSettings.h"
 #include "pcedition/PCInput.h"
 #include "pcedition/PCGraphics.h"
+#include "Cafe/HW/Latte/Renderer/Vulkan/ClarityEffect.h"
 #include "pcedition/PCEdition.h"
 #include "pcedition/PCMenus.h"
 #include "pcedition/PCUI.h"
@@ -240,6 +241,9 @@ namespace pce::Overlay
 			                        old.durability != copy.durability || old.clarity != copy.clarity ||
 			                        old.depthOfField != copy.depthOfField || old.reflections != copy.reflections ||
 			                        old.reflectionRange != copy.reflectionRange || old.anisotropy != copy.anisotropy;
+			// Preset Clarity (efek ReShade) dipakai pada frame berikutnya: hanya uniform yang berganti
+			if (old.clarity != copy.clarity)
+				pce::Reshade::ClarityEffect::Get().SetPreset(copy.clarity);
 			if (gfxChanged)
 				Graphics::ApplyLive();
 			if (old.volume != copy.volume || old.speakers != copy.speakers || old.audioDevice != copy.audioDevice)

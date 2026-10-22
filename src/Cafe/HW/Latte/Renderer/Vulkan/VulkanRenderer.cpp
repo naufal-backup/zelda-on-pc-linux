@@ -3554,7 +3554,18 @@ void VulkanRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 
 	auto outputUniforms = shader->FillUniformBlockBuffer(*texView, {imageWidth, imageHeight}, padView);
 
-	auto outputUniformOffset = uniformData_uploadUniformDataBufferGetOffset({(uint8*)&outputUniforms, sizeof(decltype(outputUniforms))});
+	// The Clarity effect carries its preset as extra uniform data after the standard block.
+	uint32 outputUniformOffset;
+	if (shader->HasExtendedUniforms())
+	{
+		std::vector<uint8> extended;
+		shader->BuildExtendedUniforms(outputUniforms, extended);
+		outputUniformOffset = uniformData_uploadUniformDataBufferGetOffset({extended.data(), extended.size()});
+	}
+	else
+	{
+		outputUniformOffset = uniformData_uploadUniformDataBufferGetOffset({(uint8*)&outputUniforms, sizeof(decltype(outputUniforms))});
+	}
 
 	vkCmdBindDescriptorSets(m_state.currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &descriptSet,
 		1, &outputUniformOffset);

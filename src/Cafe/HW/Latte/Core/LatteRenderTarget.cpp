@@ -29,6 +29,7 @@ void LatteRenderTarget_copyToBackbuffer(LatteTextureView* textureView, bool isPa
 #include "Cafe/OS/libs/erreula/erreula.h"
 #include "input/InputManager.h"
 #include "Cafe/OS/libs/swkbd/swkbd.h"
+#include "Cafe/HW/Latte/Renderer/Vulkan/ClarityEffect.h"
 
 uint32 prevScissorX = 0;
 uint32 prevScissorY = 0;
@@ -1518,7 +1519,6 @@ void LatteRenderTarget_copyToBackbuffer(LatteTextureView* textureView, bool isPa
 	if (shader == nullptr)
 	{
 		sint32 scaling_filter = downscaling ? GetConfig().downscale_filter : GetConfig().upscale_filter;
-
 		if (scaling_filter == kLinearFilter)
 		{
 			if(renderUpsideDown)
@@ -1554,6 +1554,20 @@ void LatteRenderTarget_copyToBackbuffer(LatteTextureView* textureView, bool isPa
 				shader = RendererOutputShader::s_copy_shader;
 
 			filter = LatteTextureView::MagFilter::kNearestNeighbor;
+		}
+	}
+	// Preset Clarity (efek ReShade): kalau dipilih, ia menggantikan shader keluaran biasa. Presetnya
+	// hanya mengubah uniform, jadi mengganti preset tidak perlu restart dan berlaku pada frame berikutnya.
+	if (!isPadView && pce::IsActive())
+	{
+		const int clarityPreset = pce::Reshade::ClarityEffect::Get().GetPreset();
+		if (pce::Reshade::ClarityEffect::IsEnabledPreset(clarityPreset))
+		{
+			if (RendererOutputShader* clarity = pce::Reshade::ClarityEffect::Get().GetShader(clarityPreset))
+			{
+				shader = clarity;
+				filter = LatteTextureView::MagFilter::kLinear;
+			}
 		}
 	}
 	cemu_assert(shader);

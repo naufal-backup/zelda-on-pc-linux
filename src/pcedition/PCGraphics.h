@@ -13,14 +13,16 @@ namespace pce::Graphics
 {
 	// The presets of the "Enhancements" pack of the community (the shader filters and the texture detail). They are
 	// used by the settings (the labels) and by the pack itself (the names of the presets).
+	// The names follow the preset table of the Clarity effect (ClarityPresets.h): the number in the settings
+	// is the index here, so the two must stay in the same order.
 	inline constexpr const char* const kClarityPresets[] = {
-		"Disabled (Default)", "Serfrost's Preset (Recommended)", "Serfrost's Preset (Dim Display)",
-		"Serfrost's Preset (Bright Display)", "Bruz's Preset", "CellHunter's Preset", "Jamie's Preset",
-		"t3nka Neutral+", "The Complaining Gamer's Preset", "ViskClarity Preset", "Contrasty Preset",
-		"Filmic Preset", "Silentverge's Survival of the Wild Preset (Warmer)",
-		"Silentverge's Survival of the Wild Preset (Colder)", "Godot's Mexican Preset", "Hexaae's Clear Preset",
-		"MaranBr Preset (Little More Intense)", "YeMaoWuXin's Preset (Bright colors)",
-		"YeMaoWuXin's Preset (Vivid and clear)", "Cobalt's Preset (Saturated & Bright)", "User-Defined Preset",
+		"Disabled (Default)", "User-Defined Preset", "Bruz's Preset", "t3nka Neutral+", "Jamie's Preset",
+		"Contrasty Preset", "The Complaining Gamer's Preset", "Filmic Preset", "CellHunter's Preset",
+		"Serfrost's Preset (Bright Display)", "Serfrost's Preset (Dim Display)", "Serfrost's Preset (Recommended)",
+		"ViskClarity Preset", "Survival of the Wild Preset (Warmer)", "Survival of the Wild Preset (Colder)",
+		"Godot's Mexican Preset", "Hexaae's Clear Preset", "MaranBr Preset (Little More Intense)",
+		"YeMaoWuXin's Preset (Bright colors)", "YeMaoWuXin's Preset (Vivid and clear)",
+		"Cobalt's Preset (Saturated & Bright)",
 	};
 	inline constexpr const char* const kReflectionRangePresets[] = {
 		"Disabled", "Extra Low (2 samples)", "Low (4 samples, Default)", "Medium (8 samples)",
