@@ -57,7 +57,8 @@ def main():
     fields = extract("kClarityUniformFields", text)
     body = extract("kClarityFragmentBody", text)
 
-    # renderer mengompilasi sebagai #version 450 di tahap fragment
+    # Same insertion as ClarityEffect: the Clarity uniforms go inside the "parameters" block, in front of
+    # its closing brace (PREAMBLE here ends the block with the "};" on the last line).
     source = PREAMBLE + fields + "\n};\n" + body
 
     problems = []
@@ -67,6 +68,12 @@ def main():
         problems.append("badan shader punya blok parameters sendiri (bentrok dengan preamble)")
     if "uniform sampler2D textureSrc" in body:
         problems.append("badan shader mendeklarasikan textureSrc lagi")
+    # setiap uniform Clarity harus berada di dalam blok parameters, bukan sesudahnya
+    inside_block = source.split("uniform parameters {", 1)[1].split("};", 1)[0]
+    for line in fields.splitlines():
+        if line.strip() and line.strip() not in inside_block:
+            problems.append(f"uniform di luar blok parameters: {line.strip()}")
+            break
 
     with tempfile.TemporaryDirectory() as tmp:
         path = os.path.join(tmp, "clarity.frag")

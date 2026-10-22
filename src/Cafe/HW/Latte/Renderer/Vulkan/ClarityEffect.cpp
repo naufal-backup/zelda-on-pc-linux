@@ -26,12 +26,34 @@ namespace pce::Reshade
 		{
 		public:
 			ClarityOutputShader(const std::vector<uint8>& presetValues)
-				// The base class adds the standard preamble (version, textureSrc, blok parameters). The fields
-				// of the Clarity presets go inside that block, so they come first, then the shader body.
 				: RendererOutputShader(RendererOutputShader::GetVulkanVertexSource(false),
-									   std::string(kClarityUniformFields) + "\n" + std::string(kClarityFragmentBody)),
+									   BuildFragmentSource()),
 				  m_presetValues(presetValues)
 			{
+			}
+
+		private:
+			// The base class adds the standard preamble, which closes its "parameters" block with "};"
+			// right after displayGamma. The Clarity uniforms have to go inside that block, so they are
+			// inserted in front of that closing brace - not appended after the preamble.
+			static std::string BuildFragmentSource()
+			{
+				static const std::string s_preamble = RendererOutputShader::PrependFragmentPreamble("");
+				const std::string fields(kClarityUniformFields);
+				const size_t blockEnd = s_preamble.find("\n};");
+				if (blockEnd == std::string::npos)
+				{
+					// the layout is not the expected one: keep the shader valid, without the presets
+					cemuLog_log(LogType::Force, "Clarity: preamble shader keluaran tidak seperti yang diharapkan");
+					return std::string(kClarityFragmentBody);
+				}
+				std::string source = s_preamble.substr(0, blockEnd);
+				source += "\n";
+				source += fields;
+				source += s_preamble.substr(blockEnd);
+				source += "\n";
+				source += kClarityFragmentBody;
+				return source;
 			}
 
 			bool HasExtendedUniforms() const override { return true; }
