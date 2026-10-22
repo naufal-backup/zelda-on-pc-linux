@@ -37,7 +37,14 @@ rm -rf "$extract"
 mkdir -p "$extract"
 unzip -q -o "$zip" -d "$extract"
 
-for pack in "BreathOfTheWild/Graphics" "BreathOfTheWild/Mods/FPS++"; do
+for pack in "BreathOfTheWild/Graphics" "BreathOfTheWild/Mods/FPS++" "BreathOfTheWild/Mods/DrawDistance" \
+            "BreathOfTheWild/Cheats/ArrowDrawSpeed" "BreathOfTheWild/Cheats/Durability" \
+            "BreathOfTheWild/Cheats/MasterModeOptions" "BreathOfTheWild/Cheats/9999StampsLimit" \
+            "BreathOfTheWild/Cheats/InfiniteAmiibo" "BreathOfTheWild/Cheats/InfiniteArrows" \
+            "BreathOfTheWild/Cheats/InfiniteDaruk" "BreathOfTheWild/Chearts/InfiniteHearts" \
+            "BreathOfTheWild/Cheats/InfiniteMipha" "BreathOfTheWild/Cheats/InfiniteMotorcycleEnergy" \
+            "BreathOfTheWild/Cheats/InfiniteRevali" "BreathOfTheWild/Cheats/InfiniteStamina" \
+            "BreathOfTheWild/Cheats/InfiniteUrbosa"; do
   if [ ! -d "$extract/$pack" ]; then
     echo "$pack was not found in graphicPacks$version.zip" >&2
     exit 1
@@ -50,7 +57,7 @@ for pack in "BreathOfTheWild/Graphics" "BreathOfTheWild/Mods/FPS++"; do
 done
 
 cat > "$destination/README.txt" <<EOF
-Cemu community graphic packs v$version (Breath of the Wild: Graphics, FPS++)
+Cemu community graphic packs v$version (Breath of the Wild: Graphics, FPS++, DrawDistance, the cheats)
 Source:  https://github.com/cemu-project/cemu_graphic_packs
 License: CC0-1.0
 EOF

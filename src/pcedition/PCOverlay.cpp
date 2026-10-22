@@ -162,7 +162,23 @@ namespace pce::Overlay
 				g_tvAudio->SetVolume(volume);
 		}
 		std::vector<GameLanguage> sLanguages;
-		const int kFpsValues[] = {30, 60, 90, 120, 144, 165, 240};
+		// the frame rates of the FPS++ mod: the normal mode has 20 to 240 in the usual steps, the advanced mode has
+		// more (33, 40, 48, 244). The mode is switched to the one that has the value that is wanted.
+		const int kFpsValues[] = {30, 33, 40, 45, 48, 55, 60, 72, 75, 90, 120, 144, 165, 240, 244};
+		// the cheats of the graphic pack: they are switches, the settings keep them as a bit mask
+		constexpr int kCheatCount = 10;
+		constexpr int kMasterModeCount = 7;
+		bool sCheatSwitch[kCheatCount]{};
+		bool sMasterModeSwitch[kMasterModeCount]{};
+		// the packs of the cheats, in the order of the bits (the same order as in PCGraphics)
+		const char* const kCheatNames[kCheatCount] = {
+			"Infinite Amiibo", "Infinite Arrows", "Infinite Daruk", "Infinite Hearts", "Infinite Mipha",
+			"Infinite Motorcycle Energy", "Infinite Revali", "Infinite Stamina", "Infinite Urbosa", "9999 Map Stamps",
+		};
+		const char* const kMasterModeNames[kMasterModeCount] = {
+			"Show Debug Options", "1-Hit-Kill Protection", "No Ganon Stun Lock", "Randomized Guardian Fire",
+			"Shorter Enemy Notice", "Last Play Hard Mode", "Nerf Cooking",
+		};
 
 		double Now()
 		{
@@ -179,6 +195,15 @@ namespace pce::Overlay
 		{
 			if (!sAudioDeviceIds.empty())
 				sEdit.audioDevice = sAudioDeviceIds[std::clamp(sAudioDeviceIndex, 0, (int)sAudioDeviceIds.size() - 1)];
+			// the cheats: the switches back into the bit masks of the settings
+			sEdit.cheatMask = 0;
+			for (int i = 0; i < kCheatCount; i++)
+				if (sCheatSwitch[i])
+					sEdit.cheatMask |= 1u << i;
+			sEdit.masterModeMask = 0;
+			for (int i = 0; i < kMasterModeCount; i++)
+				if (sMasterModeSwitch[i])
+					sEdit.masterModeMask |= 1u << i;
 			const Settings old = GetSettings();
 			Settings copy = sEdit;
 			UpdateSettings([&](Settings& s) { s = copy; });
@@ -186,7 +211,11 @@ namespace pce::Overlay
 			                        old.antiAliasing != copy.antiAliasing || old.resolutionPreset != copy.resolutionPreset ||
 			                        old.shadowPreset != copy.shadowPreset || old.aspectRatio != copy.aspectRatio ||
 			                        old.ultrawideHud != copy.ultrawideHud || old.frameGeneration != copy.frameGeneration ||
-			                        old.cutsceneFps != copy.cutsceneFps;
+			                        old.cutsceneFps != copy.cutsceneFps || old.upscaleFilter != copy.upscaleFilter ||
+			                        old.downscaleFilter != copy.downscaleFilter || old.drawDistance != copy.drawDistance ||
+			                        old.drawDistanceObjects != copy.drawDistanceObjects || old.cheatMask != copy.cheatMask ||
+			                        old.masterModeMask != copy.masterModeMask || old.arrowDrawSpeed != copy.arrowDrawSpeed ||
+			                        old.durability != copy.durability;
 			if (gfxChanged)
 				Graphics::ApplyLive();
 			if (old.volume != copy.volume || old.speakers != copy.speakers || old.audioDevice != copy.audioDevice)
@@ -362,7 +391,8 @@ namespace pce::Overlay
 					p.items.push_back(choice("Ultrawide HUD", &sEdit.ultrawideHud, {"At the screen edges", "Centred"},
 											 "Where hearts, map and prompts are on an ultrawide picture: at its edges, or within a 16:9 area "
 											 "in the middle. Applied on next launch.", true));
-				p.items.push_back(choice("Frame Rate", &sFpsIndex, {"30 FPS", "60 FPS", "90 FPS", "120 FPS", "144 FPS", "165 FPS", "240 FPS"},
+				p.items.push_back(choice("Frame Rate", &sFpsIndex, {"30 FPS", "33 FPS", "40 FPS", "45 FPS", "48 FPS", "55 FPS", "60 FPS",
+														 "72 FPS", "75 FPS", "90 FPS", "120 FPS", "144 FPS", "165 FPS", "240 FPS", "244 FPS"},
 										 "Frame rate limit. Game speed and physics are corrected automatically. Above 60 FPS, turn V-Sync off "
 										 "unless your display runs at that refresh rate."));
 				p.items.push_back(choice("Cutscene FPS", &sEdit.cutsceneFps,
@@ -370,6 +400,21 @@ namespace pce::Overlay
 										 "The frame rate limit for the cutscenes. Only where needed: the few cutscenes that stutter are "
 										 "limited, the others run at the frame rate of the game. No limit lets them run free, that one "
 										 "crashes above 30-60 FPS."));
+				p.items.push_back(choice("Upscale Filter", &sEdit.upscaleFilter,
+										 {"Linear", "Bicubic", "Bicubic Hermite", "Nearest Neighbour"},
+										 "The filter with which the picture is scaled up to the size of the window. Bicubic Hermite is the "
+										 "sharpest of the smooth ones, Nearest Neighbour keeps the pixels as they are."));
+				p.items.push_back(choice("Downscale Filter", &sEdit.downscaleFilter,
+										 {"Linear", "Bicubic", "Bicubic Hermite", "Nearest Neighbour"},
+										 "The filter with which the picture is scaled down, when the resolution of the game is bigger "
+										 "than the window."));
+				p.items.push_back(choice("Draw Distance", &sEdit.drawDistance,
+										 {"Very Low (0.5x)", "Low (0.75x)", "Medium (1x)", "High (1.25x)", "Ultra (1.5x)", "Extreme (2x)"},
+										 "How far the characters, the enemies and the other things are drawn. A lower distance saves the "
+										 "graphics card, the things pop in when they come close."));
+				p.items.push_back(choice("Draw Distance (Terrain)", &sEdit.drawDistanceObjects,
+										 {"Low (0.75x)", "Medium (1x)", "High (1.25x)", "Ultra (1.5x)"},
+										 "How far the terrain, the buildings and the plants are drawn."));
 				p.items.push_back(toggle("V-Sync", &sEdit.vsync, "Synchronize with the display refresh rate."));
 				p.items.push_back(choice("Frame Generation", &sEdit.frameGeneration, {"Off", "AMD FSR 3"},
 										 "AMD FSR 3: a generated frame between every two real ones. The Frame Rate limit then counts the frames "
@@ -438,6 +483,28 @@ namespace pce::Overlay
 				p.items.push_back(button("Open amiibo Folder", "The folder with your amiibo files. Files put there by hand are offered as well.",
 										 []() { OpenAmiiboFolder(); }));
 				p.items.push_back(button("Quit to Desktop", "Unsaved progress since the last save will be lost.", []() { sConfirmQuit = true; }));
+				pages.push_back(std::move(p));
+			}
+			{
+				// the cheats of the graphic pack: they are the packs of the community, switched on here
+				Page p{"Cheats"};
+				for (int i = 0; i < kCheatCount; i++)
+					sCheatSwitch[i] = (sEdit.cheatMask >> i) & 1;
+				for (int i = 0; i < kMasterModeCount; i++)
+					sMasterModeSwitch[i] = (sEdit.masterModeMask >> i) & 1;
+				p.items.push_back(header("Cheats"));
+				for (int i = 0; i < kCheatCount; i++)
+					p.items.push_back(toggle(kCheatNames[i], &sCheatSwitch[i], "One of the cheats of the graphic pack of the community."));
+				p.items.push_back(header("Master Mode"));
+				for (int i = 0; i < kMasterModeCount; i++)
+					p.items.push_back(toggle(kMasterModeNames[i], &sMasterModeSwitch[i], "An option of the master mode of the graphic pack of the community."));
+				p.items.push_back(header("More"));
+				p.items.push_back(choice("Bow Draw Speed", &sEdit.arrowDrawSpeed,
+										 {"Disable Bow", "0.5x", "0.75x", "1x", "1.5x", "2x", "3x", "10x", "20x", "40x"},
+										 "How fast the bow is drawn. The quicker it is, the more often a shot lands."));
+				p.items.push_back(choice("Durability", &sEdit.durability,
+										 {"One Hit", "x1", "x1.5", "x2", "x3", "x4", "x5", "x10", "Unbreakable"},
+										 "How fast the weapons wear out. Unbreakable never does."));
 				pages.push_back(std::move(p));
 			}
 			return pages;

@@ -122,6 +122,17 @@ namespace pce
 		// the cutscenes have their own frame rate limit (the FPS++ mod): 0 only the few that need it, 1 all of them at
 		// 60 FPS, 2 all of them at 30 FPS, 3 none (that one crashes above 30-60 FPS)
 		int cutsceneFps = 0;
+		// the filters of the renderer: 0 linear, 1 bicubic, 2 bicubic hermite, 3 nearest neighbour
+		int upscaleFilter = 2;
+		int downscaleFilter = 0;
+		// the draw distance of the graphic pack (the level of detail): the objects and the terrain
+		int drawDistance = 2;
+		int drawDistanceObjects = 1;
+		// the cheats of the graphic pack: the packs that are switched on and the options of the master mode
+		uint32 cheatMask = 0;
+		uint32 masterModeMask = 0;
+		int arrowDrawSpeed = 3;            // the speed of the bow's draw
+		int durability = 1;                // the durability modifier
 		bool vsync = true;
 		int shadowPreset = 1;
 		int antiAliasing = 1;

@@ -101,10 +101,14 @@ the game's tutorial tips show your keys where the game has pictures of the GameP
   settings take the place of the game's picture of the GamePad: camera, controls, motion, graphics, audio, game.
   Mouse or keyboard (`→` to go in, `Esc` to come out). On the title screen `Esc` opens them on their own. They are
   stored in a readable `settings.ini`.
-- Resolution from 720p to 4K, frame rate limits from 30 to 240 FPS with corrected game speed and physics, shadows,
+- Resolution from 720p to 4K, frame rate limits from 30 to 244 FPS with corrected game speed and physics, shadows,
   anti-aliasing, V-Sync.
 - **The cutscenes have their own frame rate limit** (`Esc` → **Graphics** → **Cutscene FPS**): only the few that need
   it, all of them at 60 FPS, all of them at 30 FPS or none.
+- **The filters of the renderer** (`Esc` → **Graphics**): the upscale and the downscale filter (linear, bicubic, bicubic
+  hermite, nearest neighbour) and the **draw distance** of the objects and of the terrain.
+- **The cheats of the graphic pack** (`Esc` → **Cheats**): infinite hearts, stamina, arrows, amiibo, the divine
+  protections, the bow draw speed, the durability and the options of the master mode.
 - Audio: volume (applied at once), speakers (mono, stereo, 5.1 surround) and the output device.
 - **Aspect ratio:** 16:9, 16:10, 21:9 and 32:9, with the HUD at the edges of the screen or centred on ultrawide. An
   ultrawide main display is detected. New, and so far tried in a window only, not on an ultrawide display.

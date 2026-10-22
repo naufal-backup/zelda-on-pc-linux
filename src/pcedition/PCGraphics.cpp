@@ -60,6 +60,17 @@ namespace pce::Graphics
 			return nullptr;
 		}
 
+		// the categories of the options of the master mode (the cheat pack), in the order of the bits of the mask
+		const char* MasterModeCategory(size_t i)
+		{
+			static const char* kCategories[] = {
+				"Show Debug Options", "1-Hit-Kill Protection", "No Ganon Stun Lock",
+				"Randomized Guardian Fire Timing", "Shorter Enemy Notice",
+				"IsLastPlayHardMode (Does nothing)", "Nerf Cooking (Appears to be broken or unimplemented)",
+			};
+			return i < std::size(kCategories) ? kCategories[i] : "";
+		}
+
 		// select the first preset of a category whose name starts with the given prefix
 		bool SelectPreset(const std::shared_ptr<GraphicPack2>& gp, const std::string& category, const std::string& namePrefix, bool* changed = nullptr)
 		{
@@ -532,7 +543,6 @@ blr
 			if (auto fps = FindPack("BreathOfTheWild/Mods/FPS++"))
 			{
 				fps->SetEnabled(true);
-				SelectPreset(fps, "Mode", "Normal Settings", fpsChanged);
 				SelectPreset(fps, "Fence Type", "Performance Fence", fpsChanged);
 				// the cutscenes have their own frame rate limit: only the few that need it, all of them at 60 or 30 FPS,
 				// or none (the last one crashes above 30-60 FPS)
@@ -542,15 +552,74 @@ blr
 				SelectPreset(fps, "Frame Average", "8 Frames", fpsChanged);
 				SelectPreset(fps, "Static Mode", "Disabled", fpsChanged);
 				SelectPreset(fps, "Debug Options", "Disabled", fpsChanged);
+				// The mod has two sets of presets: the normal mode has 20 to 240 in the usual steps, the advanced mode
+				// has more (33, 40, 48, 244). The mode is switched to the one that has the value that is wanted.
 				// with frame generation the limit counts the frames shown: the game runs at half of it (steady pacing too)
-				static const int kLimits[] = {20, 30, 45, 55, 60, 72, 75, 90, 120, 144, 165, 240}; // FPS++ presets
+				static const int kLimits[] = {20, 30, 33, 40, 45, 48, 55, 60, 72, 75, 90, 120, 144, 165, 240, 244};
 				const int target = s.frameGeneration == 1 ? s.fpsLimit / 2 : s.fpsLimit;
 				int limit = kLimits[0];
 				for (int v : kLimits)
 					if (target >= v)
 						limit = v;
-				SelectPreset(fps, "FPS Limit", fmt::format("{}FPS Limit", limit), fpsChanged);
-				SelectPreset(fps, "Framerate Limit", fmt::format("{}FPS (", limit), fpsChanged);
+				const bool advanced = limit == 33 || limit == 40 || limit == 48 || limit == 244;
+				SelectPreset(fps, "Mode", advanced ? "Advanced Settings" : "Normal Settings", fpsChanged);
+				if (advanced)
+					SelectPreset(fps, "Framerate Limit", fmt::format("{}FPS (", limit), fpsChanged);
+				else
+					SelectPreset(fps, "FPS Limit", fmt::format("{}FPS Limit", limit), fpsChanged);
+			}
+			// the draw distance (the level of detail) of the graphic pack
+			if (auto dd = FindPack("BreathOfTheWild/Mods/DrawDistance"))
+			{
+				dd->SetEnabled(true);
+				static const char* kDrawDistance[] = {"Very Low (0.5x)", "Low (0.75x)", "Medium (1x)",
+													 "High (1.25x)", "Ultra (1.5x)", "Extreme (2x"};
+				static const char* kDrawDistanceObjects[] = {"Low (0.75x)", "Medium (1x)", "High (1.25x)", "Ultra (1.5x)"};
+				SelectPreset(dd, "NPC, Enemies And Other Entities", kDrawDistance[std::clamp(s.drawDistance, 0, 5)], gfxChanged);
+				SelectPreset(dd, "Terrain, Buildings, Bushes And Other Objects", kDrawDistanceObjects[std::clamp(s.drawDistanceObjects, 0, 3)], gfxChanged);
+			}
+			// the cheats of the graphic pack
+			if (auto ch = FindPack("BreathOfTheWild/Cheats/ArrowDrawSpeed"))
+			{
+				ch->SetEnabled(true);
+				static const char* kDrawSpeed[] = {"Disable Bow", "0.5x", "0.75x", "1x (Default)", "1.5x",
+												  "2x", "3x", "10x", "20x", "40x"};
+				SelectPreset(ch, "Draw Speed", kDrawSpeed[std::clamp(s.arrowDrawSpeed, 0, 9)], gfxChanged);
+			}
+			if (auto du = FindPack("BreathOfTheWild/Cheats/Durability"))
+			{
+				du->SetEnabled(true);
+				static const char* kDurability[] = {"One Hit", "x1 (Default)", "x1.5", "x2", "x3", "x4", "x5", "x10", "Unbreakable"};
+				SelectPreset(du, "Durability Modifier", kDurability[std::clamp(s.durability, 0, 8)], gfxChanged);
+			}
+			if (auto mm = FindPack("BreathOfTheWild/Cheats/MasterModeOptions"))
+			{
+				mm->SetEnabled(true);
+				// every option is a pair of presets: the first one is the default, the bit of the mask says which one
+				static const char* kMasterMode[][2] = {
+					{"Disabled (Default)", "Enabled (shows broken options)"},        // show the debug options
+					{"Disabled (Default)", "Enabled"},                              // 1-hit-kill protection
+					{"Enabled (Default)", "Disabled"},                              // no Ganon stun lock
+					{"Enabled (Default)", "Disabled"},                              // randomized guardian fire timing
+					{"Enabled (Default)", "Disabled"},                              // shorter enemy notice
+					{"Enabled (Default)", "Disabled"},                              // is last play hard mode
+					{"Disabled (Default)", "Enabled"},                              // nerf cooking
+				};
+				for (size_t i = 0; i < std::size(kMasterMode); i++)
+					SelectPreset(mm, MasterModeCategory(i), kMasterMode[i][(s.masterModeMask >> i) & 1], gfxChanged);
+			}
+			// the cheat packs that are simply switched on or off
+			static const char* kCheatPacks[] = {
+				"BreathOfTheWild/Cheats/InfiniteAmiibo", "BreathOfTheWild/Cheats/InfiniteArrows",
+				"BreathOfTheWild/Cheats/InfiniteDaruk", "BreathOfTheWild/Cheats/InfiniteHearts",
+				"BreathOfTheWild/Cheats/InfiniteMipha", "BreathOfTheWild/Chearts/InfiniteMotorcycleEnergy",
+				"BreathOfTheWild/Cheats/InfiniteRevali", "BreathOfTheWild/Chearts/InfiniteStamina",
+				"BreathOfTheWild/Cheats/InfiniteUrbosa", "BreathOfTheWild/Cheats/9999StampsLimit",
+			};
+			for (size_t i = 0; i < std::size(kCheatPacks); i++)
+			{
+				if (auto cp = FindPack(kCheatPacks[i]))
+					cp->SetEnabled((s.cheatMask >> i) & 1);
 			}
 			if (auto pce = FindPack("BotWPCEdition"))
 				pce->SetEnabled(true);
@@ -701,6 +770,10 @@ blr
 	{
 		Settings s = GetSettings();
 		GetConfig().vsync = s.vsync ? 1 : 0;
+		// the filters of the renderer: they are used when the picture is scaled (the window is bigger than the
+		// resolution of the game)
+		GetConfig().upscale_filter = std::clamp(s.upscaleFilter, 0, 3);
+		GetConfig().downscale_filter = std::clamp(s.downscaleFilter, 0, 3);
 		bool fpsChanged = false, gfxChanged = false;
 		SetPacksFromSettings(s, true, &fpsChanged, &gfxChanged);
 		if (CafeSystem::IsTitleRunning())
