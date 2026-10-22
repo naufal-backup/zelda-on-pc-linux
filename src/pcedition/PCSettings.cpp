@@ -208,6 +208,7 @@ namespace pce
 			Get(m, "Graphics", "AspectRatio", s.aspectRatio);
 			Get(m, "Graphics", "UltrawideHUD", s.ultrawideHud);
 			Get(m, "Graphics", "FPSLimit", s.fpsLimit);
+			Get(m, "Graphics", "CutsceneFPS", s.cutsceneFps);
 			Get(m, "Graphics", "VSync", s.vsync);
 			Get(m, "Graphics", "Shadows", s.shadowPreset);
 			Get(m, "Graphics", "AntiAliasing", s.antiAliasing);
@@ -304,6 +305,7 @@ namespace pce
 		o << "AspectRatio=" << s.aspectRatio << "\n";
 		o << "UltrawideHUD=" << s.ultrawideHud << "\n";
 		o << "FPSLimit=" << s.fpsLimit << "\n";
+		o << "CutsceneFPS=" << s.cutsceneFps << "\n";
 		o << "VSync=" << b(s.vsync) << "\n";
 		o << "Shadows=" << s.shadowPreset << "\n";
 		o << "AntiAliasing=" << s.antiAliasing << "\n";

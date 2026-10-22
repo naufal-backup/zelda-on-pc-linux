@@ -534,7 +534,11 @@ blr
 				fps->SetEnabled(true);
 				SelectPreset(fps, "Mode", "Normal Settings", fpsChanged);
 				SelectPreset(fps, "Fence Type", "Performance Fence", fpsChanged);
-				SelectPreset(fps, "Cutscene FPS Limit", "Automatically Limit", fpsChanged);
+				// the cutscenes have their own frame rate limit: only the few that need it, all of them at 60 or 30 FPS,
+				// or none (the last one crashes above 30-60 FPS)
+				static const char* kCutsceneFps[] = {"Automatically Limit", "Limit all cutscenes to 60FPS",
+													  "Limit all cutscenes to 30FPS", "Disabled"};
+				SelectPreset(fps, "Cutscene FPS Limit", kCutsceneFps[std::clamp(s.cutsceneFps, 0, 3)], fpsChanged);
 				SelectPreset(fps, "Frame Average", "8 Frames", fpsChanged);
 				SelectPreset(fps, "Static Mode", "Disabled", fpsChanged);
 				SelectPreset(fps, "Debug Options", "Disabled", fpsChanged);

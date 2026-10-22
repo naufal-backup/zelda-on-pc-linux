@@ -185,7 +185,8 @@ namespace pce::Overlay
 			const bool gfxChanged = old.fpsLimit != copy.fpsLimit || old.vsync != copy.vsync ||
 			                        old.antiAliasing != copy.antiAliasing || old.resolutionPreset != copy.resolutionPreset ||
 			                        old.shadowPreset != copy.shadowPreset || old.aspectRatio != copy.aspectRatio ||
-			                        old.ultrawideHud != copy.ultrawideHud || old.frameGeneration != copy.frameGeneration;
+			                        old.ultrawideHud != copy.ultrawideHud || old.frameGeneration != copy.frameGeneration ||
+			                        old.cutsceneFps != copy.cutsceneFps;
 			if (gfxChanged)
 				Graphics::ApplyLive();
 			if (old.volume != copy.volume || old.speakers != copy.speakers || old.audioDevice != copy.audioDevice)
@@ -297,7 +298,7 @@ namespace pce::Overlay
 				p.items.push_back(toggle("Invert Vertical", &sEdit.invertY, "Invert up / down camera movement."));
 				p.items.push_back(slider("Keyboard Camera Speed", &sEdit.keyCameraSpeed, 0.1f, 1.0f, 0.05f, "%.2f", "Speed of the optional keyboard camera keys."));
 				p.items.push_back(slider("Walk Speed", &sEdit.walkSpeed, 0.2f, 0.8f, 0.05f, "%.2f", "Movement speed while the Walk key is held."));
-				p.items.push_back(toggle("Parry with Attack", &sEdit.parryWithAttack, "While the shield is raised (Lock On held), the Attack key performs a perfect guard."));
+				p.items.push_back(toggle("Parry with Attack", &sEdit.parryWithAttack, "On: while the shield is raised (Lock On held), the Attack key performs a perfect guard instead of an attack. Off: the Attack key attacks, and a perfect guard happens when it is pressed at the right moment."));
 				p.items.push_back(toggle("Remote Bombs: Keep the Bow", &sEdit.bombKeepsBow,
 										 "On: while a remote bomb is out, Draw Bow still draws the bow and the Use Rune key detonates the bomb. "
 										 "Off: Draw Bow detonates it."));
@@ -364,6 +365,11 @@ namespace pce::Overlay
 				p.items.push_back(choice("Frame Rate", &sFpsIndex, {"30 FPS", "60 FPS", "90 FPS", "120 FPS", "144 FPS", "165 FPS", "240 FPS"},
 										 "Frame rate limit. Game speed and physics are corrected automatically. Above 60 FPS, turn V-Sync off "
 										 "unless your display runs at that refresh rate."));
+				p.items.push_back(choice("Cutscene FPS", &sEdit.cutsceneFps,
+										 {"Only where needed", "All cutscenes at 60 FPS", "All cutscenes at 30 FPS", "No limit"},
+										 "The frame rate limit for the cutscenes. Only where needed: the few cutscenes that stutter are "
+										 "limited, the others run at the frame rate of the game. No limit lets them run free, that one "
+										 "crashes above 30-60 FPS."));
 				p.items.push_back(toggle("V-Sync", &sEdit.vsync, "Synchronize with the display refresh rate."));
 				p.items.push_back(choice("Frame Generation", &sEdit.frameGeneration, {"Off", "AMD FSR 3"},
 										 "AMD FSR 3: a generated frame between every two real ones. The Frame Rate limit then counts the frames "

@@ -1398,7 +1398,9 @@ namespace pce::Input
 		// pointer, its clicks and the PC menus), never to the camera of the game. This does not depend on whether the
 		// pointer found something to point at: a menu whose entries the reader cannot see (the System page, the title
 		// screen, a sub menu) must not leave the camera on the mouse either.
-		const bool menuScreen = ui.title || ui.inventory || ui.map || ui.dialog || ui.choice || ui.cameraDialog || ui.scope || ui.cameraRune || ui.anyMenu;
+		// The scope and the camera rune are no menus for the PC layer: the mouse aims the camera there, like while
+		// aiming, and the cursor of the desktop stays out of the way.
+		const bool menuScreen = ui.title || ui.inventory || ui.map || ui.dialog || ui.choice || ui.cameraDialog || ui.anyMenu;
 		const bool menuOpen = menuScreen || mio.pointerMode;
 		// show the OS cursor while any menu is open (even when the pointer screen cannot be detected, e.g. System page, title menu)
 		sPointerMode = menuOpen;
@@ -1498,6 +1500,12 @@ namespace pce::Input
 		{
 			const bool gameplay = inputEnabled && !mio.pointerMode && !ui.anyMenu && !ui.dialog;
 			const bool sprintKey = act[(size_t)Action::Sprint], shieldKey = act[(size_t)Action::Target];
+			// The lock on has priority over the sprint: pressing it stops the running, and while it is held the character
+			// walks (the shield is up, the game does not let him run).
+			if (shieldKey && !fs.prevShieldKey)
+				fs.sprintLatch = false;
+			if (shieldKey)
+				act[(size_t)Action::Sprint] = false;
 			// while swimming the Sprint key is the swim dash, which must not stay held (it would drain the stamina)
 			if (!s.toggleSprint || !gameplay || ui.Has("Dash"))
 				fs.sprintLatch = false;
@@ -1955,14 +1963,8 @@ namespace pce::Input
 				}
 				lx = ly = 0.0f;
 			}
-			if (sel.keyDriven)
-			{
-				// mouse X scrolls the selection while the key is held
-				sel.mouseAccum += mdx;
-				const double step = std::max(1.0f, s.selectorMouseStep);
-				while (sel.mouseAccum >= step) { sel.pendingSteps++; sel.mouseAccum -= step; }
-				while (sel.mouseAccum <= -step) { sel.pendingSteps--; sel.mouseAccum += step; }
-			}
+			// The mouse does not scroll the selection: it aims the camera, like everywhere else. The selection is
+			// stepped with the wheel of the mouse or with the movement keys (see the setting 'selectorMoveKeys').
 			// emit flicks
 			if (sel.frame >= pre + kOpenFrames)
 			{

@@ -95,7 +95,7 @@ namespace pce
 
 		// movement
 		float walkSpeed = 0.45f;            // stick magnitude while Walk is held
-		bool parryWithAttack = true;        // shield raised + attack key = perfect guard
+		bool parryWithAttack = false;       // shield raised + attack key = perfect guard (off: the attack key attacks)
 		bool toggleSprint = false;          // one press keeps sprinting (until pressed again or standing still)
 		bool toggleShield = false;          // one press keeps Lock On / Shield held until pressed again
 		bool bombKeepsBow = false;          // a remote bomb is out: the bow key still draws the bow (Use Rune detonates)
@@ -119,6 +119,9 @@ namespace pce
 		int aspectRatio = 0;                // 0 automatic (21:9 / 32:9 on such a display, else 16:9), 1 16:9, 2 16:10, 3 21:9, 4 32:9
 		int ultrawideHud = 0;               // 21:9 / 32:9: 0 HUD at the screen edges, 1 HUD centred (16:9 area)
 		int fpsLimit = 60;                  // 30, 60, 90, 120, 144, 165 or 240 (FPS++ limit)
+		// the cutscenes have their own frame rate limit (the FPS++ mod): 0 only the few that need it, 1 all of them at
+		// 60 FPS, 2 all of them at 30 FPS, 3 none (that one crashes above 30-60 FPS)
+		int cutsceneFps = 0;
 		bool vsync = true;
 		int shadowPreset = 1;
 		int antiAliasing = 1;

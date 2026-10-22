@@ -60,11 +60,15 @@ HUD**, so the interface is drawn on top at full sharpness instead of being inter
   instead of spinning around); by default there is no limit.
 - **Every action rebindable**, two keys per action, with conflict highlighting.
 - **Weapons on the mouse wheel**, arrows while aiming. Hold `1` – `4` for the weapon, bow, shield and rune selectors.
-  As an option (`Esc` → **Camera**), the movement keys step through an open selector and move the cursor in the
-  inventory.
+  The mouse aims the camera while a selector is open, the selection is stepped with the wheel. As an option
+  (`Esc` → **Camera**), the movement keys step through an open selector and move the cursor in the inventory.
+- **The scope and the camera rune are aimed with the mouse**, like the bow: the cursor of the desktop stays out of the
+  way there.
 - **Toggle modes** for sprint and for lock on / shield, for everyone who cannot or does not want to hold a key down.
-- Perfect guard with the attack button while the shield is up, flurry rush with mouse clicks, the jump key closes and
+- Perfect guard with the attack button while the shield is up (an option: off, the attack key attacks and the perfect
+  guard happens when it is pressed at the right moment), flurry rush with mouse clicks, the jump key closes and
   reopens the paraglider.
+- **The lock on has priority over the sprint**: pressing it stops the running, and while it is held Link walks.
 - **Motion control shrines with the mouse**: `T` tilts the virtual GamePad.
 - As an option, remote bombs keep the bow on the right mouse button (Use Rune detonates them).
 
@@ -99,6 +103,8 @@ the game's tutorial tips show your keys where the game has pictures of the GameP
   stored in a readable `settings.ini`.
 - Resolution from 720p to 4K, frame rate limits from 30 to 240 FPS with corrected game speed and physics, shadows,
   anti-aliasing, V-Sync.
+- **The cutscenes have their own frame rate limit** (`Esc` → **Graphics** → **Cutscene FPS**): only the few that need
+  it, all of them at 60 FPS, all of them at 30 FPS or none.
 - Audio: volume (applied at once), speakers (mono, stereo, 5.1 surround) and the output device.
 - **Aspect ratio:** 16:9, 16:10, 21:9 and 32:9, with the HUD at the edges of the screen or centred on ultrawide. An
   ultrawide main display is detected. New, and so far tried in a window only, not on an ultrawide display.
