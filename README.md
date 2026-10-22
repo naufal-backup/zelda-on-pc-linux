@@ -54,6 +54,10 @@ HUD**, so the interface is drawn on top at full sharpness instead of being inter
   game's camera code is patched to take the rotation directly, in the third person camera, with a target locked on, on
   horseback, while aiming the bow, in the scope, in the camera rune, while climbing, in conversations, while shield
   surfing, behind a sand seal and swimming up a waterfall.
+- **The camera turns all the way around.** While Link stands still the camera keeps the direction the mouse gave it: it
+  can be spun around him any number of times, it does not swing back on its own. While he runs, the camera swings back
+  behind him as usual. `Esc` → **Camera** → **Aim Limit** puts a hard limit on the turn (the camera stops at the limit
+  instead of spinning around); by default there is no limit.
 - **Every action rebindable**, two keys per action, with conflict highlighting.
 - **Weapons on the mouse wheel**, arrows while aiming. Hold `1` – `4` for the weapon, bow, shield and rune selectors.
   As an option (`Esc` → **Camera**), the movement keys step through an open selector and move the cursor in the
@@ -74,6 +78,9 @@ the game's tutorial tips show your keys where the game has pictures of the GameP
 
 ### A mouse pointer in the game's own menus
 
+- **Every menu of the game:** the selection follows the pointer and a click opens the entry, in the title screen, in the
+  pause menu, in the inventory, on the map and in the dialogs. The mouse is the game's own while a menu is open, the
+  camera does not turn.
 - **Inventory:** the selection follows the pointer, click to use an item, click the category icons and the page
   arrows, wheel to change category, drag to rotate Link.
 - **Map:** drag to pan, wheel to zoom, click a spot to move the cursor there and confirm (pins, fast travel).
