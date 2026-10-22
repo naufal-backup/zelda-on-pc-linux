@@ -2064,7 +2064,12 @@ namespace pce::Input
 						const double len = sqrt(px * px + py * py);
 						fs.manualDirX = (float)(px / len);
 						fs.manualDirY = (float)(py / len);
-						fs.manualHoldUntil = now + (sint64)(QpcFreq() * 3600); // keep manual camera mode active continuously (free 360° rotation, no auto-recenter)
+						// While Link stands still the camera keeps the direction the mouse gave it: it can be turned all
+						// the way around and it does not swing back behind him. While he runs the camera swings back
+						// behind him as usual, so the hold is only a moment long then.
+						const bool running = act[(size_t)Action::MoveForward] || act[(size_t)Action::MoveBack] ||
+											 act[(size_t)Action::MoveLeft] || act[(size_t)Action::MoveRight];
+						fs.manualHoldUntil = now + (sint64)(QpcFreq() * (running ? 0.12 : 3600.0));
 					}
 					if (now < fs.manualHoldUntil)
 					{
