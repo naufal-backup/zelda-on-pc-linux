@@ -4,7 +4,8 @@
 
 <p align="center">
 <b>The Legend of Zelda: Breath of the Wild, set up as a PC game.</b><br>
-Mouse and keyboard · PC menus and key prompts · <b>AMD FSR 3 frame generation</b><br>
+Mouse and keyboard · <b>1:1 mouse camera that turns all the way around</b> · PC menus and key prompts<br>
+<b>AMD FSR 3 frame generation</b> · shader filters · cheats<br>
 <i>Runs your own copy of the game on the <a href="https://github.com/cemu-project/Cemu">Cemu</a> emulator.</i>
 </p>
 
@@ -23,11 +24,15 @@ installer, and none are downloaded.
 |---|---|---|
 | Start | Emulator window, game list, per-game setup | Double-click, straight into the game |
 | Controls | Controller, or keys mapped to controller buttons | Mouse and keyboard made for the game, 1:1 mouse camera |
+| Camera | The right stick, limited by the game | The mouse, patched into the camera code of the game, turns all the way around |
 | On-screen prompts | The buttons of the Wii U GamePad | Your own keys and mouse buttons |
 | Menus | Stick and buttons | Mouse: hover, click, drag, wheel |
 | Map | Controller pan and zoom | Drag to pan, wheel to zoom, **interactive map companion** with live completion tracking |
 | Frame rate | FPS++ graphic pack, set up by hand | Built in, **plus AMD FSR 3 frame generation** |
+| Picture | The shaders of the game | The shaders of the game **plus 22 presets of the picture**, depth of field, reflections, filters |
 | Settings | Emulator dialogs and graphic packs | In the game's own pause menu (`Esc`) |
+
+The changes of every release are in the [changelog](CHANGELOG.md).
 
 ## Features
 
@@ -85,6 +90,8 @@ the game's tutorial tips show your keys where the game has pictures of the GameP
 - **Every menu of the game:** the selection follows the pointer and a click opens the entry, in the title screen, in the
   pause menu, in the inventory, on the map and in the dialogs. The mouse is the game's own while a menu is open, the
   camera does not turn.
+- **The PC settings are a menu of the game too:** the pages of the settings (camera, controls, motion, graphics,
+  filters, audio, game, cheats) are opened, scrolled and changed with the mouse, like the rest of the game's menus.
 - **Inventory:** the selection follows the pointer, click to use an item, click the category icons and the page
   arrows, wheel to change category, drag to rotate Link.
 - **Map:** drag to pan, wheel to zoom, click a spot to move the cursor there and confirm (pins, fast travel).
@@ -98,17 +105,20 @@ the game's tutorial tips show your keys where the game has pictures of the GameP
 - Display mode: windowed, borderless or exclusive fullscreen (`Esc` → **Graphics**, `Alt+Enter` toggles a window),
   cursor captured while playing and released in menus.
 - **Settings in the game's own pause menu.** `Esc` opens it on its System page (save, load, options), where the PC
-  settings take the place of the game's picture of the GamePad: camera, controls, motion, graphics, audio, game.
-  Mouse or keyboard (`→` to go in, `Esc` to come out). On the title screen `Esc` opens them on their own. They are
-  stored in a readable `settings.ini`.
+  settings take the place of the game's picture of the GamePad: camera, controls, motion, graphics, filters, audio, game
+  and cheats. Mouse or keyboard (`→` to go in, `Esc` to come out). On the title screen `Esc` opens them on their own.
+  They are stored in a readable `settings.ini`.
 - Resolution from 720p to 4K, frame rate limits from 30 to 244 FPS with corrected game speed and physics, shadows,
   anti-aliasing, V-Sync.
 - **The cutscenes have their own frame rate limit** (`Esc` → **Graphics** → **Cutscene FPS**): only the few that need
   it, all of them at 60 FPS, all of them at 30 FPS or none.
 - **The filters of the renderer** (`Esc` → **Graphics**): the upscale and the downscale filter (linear, bicubic, bicubic
   hermite, nearest neighbour) and the **draw distance** of the objects and of the terrain.
+- **The shader filters** (`Esc` → **Filters**): 22 presets of the picture (Clarity), the depth of field, the reflections
+  and the anisotropic filtering of the textures.
 - **The cheats of the graphic pack** (`Esc` → **Cheats**): infinite hearts, stamina, arrows, amiibo, the divine
-  protections, the bow draw speed, the durability and the options of the master mode.
+  protections, the bow draw speed, the durability and the options of the master mode. The page is only there when it is
+  wanted (`Esc` → **Game** → **Enable Cheats**).
 - Audio: volume (applied at once), speakers (mono, stereo, 5.1 surround) and the output device.
 - **Aspect ratio:** 16:9, 16:10, 21:9 and 32:9, with the HUD at the edges of the screen or centred on ultrawide. An
   ultrawide main display is detected. New, and so far tried in a window only, not on an ultrawide display.
