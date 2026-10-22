@@ -11,7 +11,7 @@ on:
       version:
         description: "Version of the release (used in the file names)"
         required: false
-        default: "1.3.1"
+        default: ""
 
 jobs:
   build:
@@ -22,7 +22,6 @@ jobs:
     env:
       VCPKG_ROOT: ${{ github.workspace }}/dependencies/vcpkg
       BUILD_TYPE: Release
-      PACKAGE_VERSION: ${{ github.event.inputs.version || '1.3.1' }}
 
     steps:
       - name: Check out the repository
@@ -30,6 +29,20 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 0
+
+      - name: Determine the version
+        run: |
+          # a tag build takes the version from the tag (v1.3.3-linux -> 1.3.3-linux), so the file names of the
+          # release always match the tag that published it
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          elif [ "${{ github.ref_type }}" = "tag" ]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          else
+            VERSION="1.3.3"
+          fi
+          echo "PACKAGE_VERSION=$VERSION" >> $GITHUB_ENV
+          echo "version: $VERSION"
 
       - name: Install the build dependencies
         run: |

@@ -1,0 +1,14 @@
+# Zelda on PC - the raw input of the keyboard and the mouse.
+#
+# The game reads the input devices of the machine directly (the same way Windows Raw Input does), so the user needs
+# access to them. The rule below gives the user of the seat the access to the devices (the same as the rule of
+# systemd for the joysticks).
+#
+# The name of the file matters: it has to be read before 71-seat.rules, which tags the devices of the seat. A rule
+# that runs later adds the tag "uaccess" too late and systemd-logind then does not give the session access to the
+# device.
+#
+# Install it with: sudo cp 69-zelda-on-pc-input.rules /etc/udev/rules.d/
+#                  sudo udevadm control --reload-rules && sudo udevadm trigger --action=add /dev/input/event*
+
+KERNEL=="event*", SUBSYSTEM=="input", TAG+="uaccess"

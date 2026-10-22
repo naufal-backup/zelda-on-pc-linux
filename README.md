@@ -172,9 +172,13 @@ are used instead: everything works, but the movement of the mouse is the movemen
 To give the access by hand:
 
 ```bash
-sudo cp 99-zelda-on-pc-input.rules /etc/udev/rules.d/
-sudo udevadm control --reload-rules && sudo udevadm trigger --subsystem-match=input
+sudo cp 69-zelda-on-pc-input.rules /etc/udev/rules.d/
+sudo udevadm control --reload-rules
+sudo udevadm trigger --action=add --subsystem-match=input
 ```
+
+The name of the rule file matters: it has to be read before `71-seat.rules`, which tags the devices of the seat. A rule
+that runs later adds the tag `uaccess` too late, and systemd-logind then does not hand the devices to the session.
 
 ## Controls
 

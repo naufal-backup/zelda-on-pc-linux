@@ -91,10 +91,11 @@ if [ -n "$game" ]; then
 fi
 
 # the rule that gives the user access to the input devices (the game reads them directly)
-if [ "$(id -u)" -eq 0 ] && [ -f "$here/99-zelda-on-pc-input.rules" ]; then
-  cp "$here/99-zelda-on-pc-input.rules" /etc/udev/rules.d/
+if [ "$(id -u)" -eq 0 ] && [ -f "$here/69-zelda-on-pc-input.rules" ]; then
+  cp "$here/69-zelda-on-pc-input.rules" /etc/udev/rules.d/
   udevadm control --reload-rules
-  udevadm trigger --subsystem-match=input
+  # "add" so that systemd-logind hands the devices of the seat to the session right away
+  udevadm trigger --action=add --subsystem-match=input
   echo "The rule for the input devices was installed."
 fi
 

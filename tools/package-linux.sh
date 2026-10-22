@@ -4,13 +4,13 @@
 # The staged folder (build/stage) is a complete portable copy: add a settings.ini with the game folder
 # ([Game] Path=...) or a "game" folder next to the executable and it runs from anywhere.
 #
-# Usage: tools/package-linux.sh [-Version 1.3.1]
+# Usage: tools/package-linux.sh [-Version 1.3.3]
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BIN="$ROOT/bin"
 STAGE="$ROOT/build/stage"
-VERSION="1.3.1"
+VERSION="1.3.3"
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -71,7 +71,7 @@ fi
 
 # the launcher of the desktop and the install script
 cp "$ROOT/dist/linux/zelda-on-pc.desktop" "$STAGE/zelda-on-pc.desktop"
-cp "$ROOT/dist/linux/99-zelda-on-pc-input.rules" "$STAGE/99-zelda-on-pc-input.rules"
+cp "$ROOT/dist/linux/69-zelda-on-pc-input.rules" "$STAGE/69-zelda-on-pc-input.rules"
 cp "$ROOT/tools/install-linux.sh" "$STAGE/install.sh"
 chmod +x "$STAGE/install.sh"
 
