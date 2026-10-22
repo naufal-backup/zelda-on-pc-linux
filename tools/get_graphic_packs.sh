@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Fetches the two community graphic packs Zelda on PC builds on ("Graphics" and "FPS++" for Breath of the Wild) from
+# Fetches the community graphic packs Zelda on PC builds on (the graphics, the frame rate and the mods of Breath of the Wild) from
 # the official Cemu graphic pack release this version was tested with, and puts them next to the executable's resources.
 #
 # The packs are made by the Cemu community (https://github.com/cemu-project/cemu_graphic_packs, CC0-1.0). They are not
@@ -37,18 +37,38 @@ rm -rf "$extract"
 mkdir -p "$extract"
 unzip -q -o "$zip" -d "$extract"
 
-for pack in "BreathOfTheWild/Graphics" "BreathOfTheWild/Mods/FPS++" "BreathOfTheWild/Mods/DrawDistance" \
+for pack in \
+            "BreathOfTheWild/Graphics" \
+            "BreathOfTheWild/Mods/FPS++" \
+            "BreathOfTheWild/Mods/DrawDistance" \
+            "BreathOfTheWild/Mods/Weather" \
+            "BreathOfTheWild/Mods/RemoveFog" \
+            "BreathOfTheWild/Mods/CelShading" \
+            "BreathOfTheWild/Mods/DayLength" \
+            "BreathOfTheWild/Mods/HUDElements" \
+            "BreathOfTheWild/Mods/CameraSensitivity" \
+            "BreathOfTheWild/Mods/MenuCursorSpeed" \
+            "BreathOfTheWild/Mods/DivineLaserBeam" \
+            "BreathOfTheWild/Mods/GlowingGuardianColor" \
             "BreathOfTheWild/Enhancements" \
-            "BreathOfTheWild/Cheats/ArrowDrawSpeed" "BreathOfTheWild/Cheats/Durability" \
-            "BreathOfTheWild/Cheats/MasterModeOptions" "BreathOfTheWild/Cheats/9999StampsLimit" \
-            "BreathOfTheWild/Cheats/InfiniteAmiibo" "BreathOfTheWild/Cheats/InfiniteArrows" \
-            "BreathOfTheWild/Cheats/InfiniteDaruk" "BreathOfTheWild/Cheats/InfiniteHearts" \
-            "BreathOfTheWild/Cheats/InfiniteMipha" "BreathOfTheWild/Cheats/InfiniteMotorcycleEnergy" \
-            "BreathOfTheWild/Cheats/InfiniteRevali" "BreathOfTheWild/Cheats/InfiniteStamina" \
+            "BreathOfTheWild/Cheats/ArrowDrawSpeed" \
+            "BreathOfTheWild/Cheats/Durability" \
+            "BreathOfTheWild/Cheats/MasterModeOptions" \
+            "BreathOfTheWild/Cheats/9999StampsLimit" \
+            "BreathOfTheWild/Cheats/PreventRandomSpawns" \
+            "BreathOfTheWild/Cheats/InfiniteAmiibo" \
+            "BreathOfTheWild/Cheats/InfiniteArrows" \
+            "BreathOfTheWild/Cheats/InfiniteDaruk" \
+            "BreathOfTheWild/Cheats/InfiniteHearts" \
+            "BreathOfTheWild/Cheats/InfiniteMipha" \
+            "BreathOfTheWild/Cheats/InfiniteMotorcycleEnergy" \
+            "BreathOfTheWild/Cheats/InfiniteRevali" \
+            "BreathOfTheWild/Cheats/InfiniteStamina" \
             "BreathOfTheWild/Cheats/InfiniteUrbosa"; do
   if [ ! -d "$extract/$pack" ]; then
-    echo "$pack was not found in graphicPacks$version.zip" >&2
-    exit 1
+    # the pack is not in this release of the community: the game finds it in the packs of the player's Cemu
+    echo "$pack was not found in graphicPacks$version.zip (it is looked for in the packs of Cemu at the start)" >&2
+    continue
   fi
   rm -rf "${destination:?}/$pack"
   mkdir -p "$(dirname "$destination/$pack")"
@@ -58,7 +78,7 @@ for pack in "BreathOfTheWild/Graphics" "BreathOfTheWild/Mods/FPS++" "BreathOfThe
 done
 
 cat > "$destination/README.txt" <<EOF
-Cemu community graphic packs v$version (Breath of the Wild: Graphics, FPS++, DrawDistance, the cheats)
+Cemu community graphic packs v$version (Breath of the Wild: graphics, frame rate, mods and cheats)
 Source:  https://github.com/cemu-project/cemu_graphic_packs
 License: CC0-1.0
 EOF

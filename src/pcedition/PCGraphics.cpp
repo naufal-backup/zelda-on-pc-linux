@@ -1089,6 +1089,30 @@ blr
 		return sDisplayModeApplied.load();
 	}
 
+	// The rules of the pack without the sizes of AMD FSR 1.0 (they are added by the edition at every start).
+	static bool SameRulesWithoutFsr(const fs::path& shipped, const fs::path& copied)
+	{
+		auto read = [](const fs::path& p, std::string& out) {
+			std::ifstream f(p, std::ios::binary);
+			if (!f)
+				return false;
+			out.assign((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+			return true;
+		};
+		std::string a, b;
+		if (!read(shipped, a) || !read(copied, b))
+			return false;
+		// the sizes of FSR are always at the end of the file
+		const size_t marker = b.find("(FSR ");
+		if (marker != std::string::npos)
+		{
+			const size_t start = b.rfind("[Preset]", marker);
+			if (start != std::string::npos)
+				b = b.substr(0, start);
+		}
+		return a == b;
+	}
+
 	void PrepareGraphicPacks()
 	{
 		// (the sizes of AMD FSR 1.0 are added to the pack of the graphics, at the end of Prepare)
@@ -1096,7 +1120,37 @@ blr
 		const fs::path dst = PacksDir() / "BreathOfTheWild";
 		// copy the community packs we use into the data folder: once, and again when the shipped copy changed
 		const auto sources = CommunityPackSources();
-		for (const char* sub : {"Graphics", "Mods/FPS++"})
+		// the packs the edition uses: they are copied into the data folder, where Cemu looks for them
+		static const char* kPacks[] = {
+			"Graphics",
+			"Mods/FPS++",
+			"Mods/DrawDistance",
+			"Mods/Weather",
+			"Mods/RemoveFog",
+			"Mods/CelShading",
+			"Mods/DayLength",
+			"Mods/HUDElements",
+			"Mods/CameraSensitivity",
+			"Mods/MenuCursorSpeed",
+			"Mods/DivineLaserBeam",
+			"Mods/GlowingGuardianColor",
+			"Enhancements",
+			"Cheats/ArrowDrawSpeed",
+			"Cheats/Durability",
+			"Cheats/MasterModeOptions",
+			"Cheats/9999StampsLimit",
+			"Cheats/PreventRandomSpawns",
+			"Cheats/InfiniteAmiibo",
+			"Cheats/InfiniteArrows",
+			"Cheats/InfiniteDaruk",
+			"Cheats/InfiniteHearts",
+			"Cheats/InfiniteMipha",
+			"Cheats/InfiniteMotorcycleEnergy",
+			"Cheats/InfiniteRevali",
+			"Cheats/InfiniteStamina",
+			"Cheats/InfiniteUrbosa",
+		};
+		for (const char* sub : kPacks)
 		{
 			const fs::path d = dst / sub;
 			bool have = fs::exists(d / "rules.txt", ec);
@@ -1106,7 +1160,10 @@ blr
 				if (!fs::exists(s / "rules.txt", ec))
 					continue;
 				const bool shipped = i == 0;
-				if (have && (!shipped || SameFile(s / "rules.txt", d / "rules.txt")))
+				// the rules of the pack of the graphics hold the sizes of AMD FSR 1.0 (they are added by the
+				// edition): they are not there when the copy is compared with the shipped one
+				if (have && (!shipped || SameFile(s / "rules.txt", d / "rules.txt") ||
+							 (std::string(sub) == "Graphics" && SameRulesWithoutFsr(s / "rules.txt", d / "rules.txt"))))
 					break;
 				fs::remove_all(d, ec);
 				fs::create_directories(d, ec);

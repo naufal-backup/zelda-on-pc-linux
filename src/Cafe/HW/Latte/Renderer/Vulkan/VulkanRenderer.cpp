@@ -3542,8 +3542,10 @@ void VulkanRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 			const float sharpness = std::clamp(m_fsrSharpness * 0.4f, 0.0f, 4.0f);
 			// the quick modes do not sharpen the picture (RCAS is skipped)
 			const bool sharpen = m_fsrUpscaler <= 2;
-			fsrView = m_fsr1->Upscale(m_state.currentCommandBuffer, baseTex->GetImageObj()->m_image, baseTex->GetFormat(),
-									  baseTex->GetDefaultLayout(), (uint32)srcW, (uint32)srcH, (uint32)imageWidth, (uint32)imageHeight, sharpness, sharpen);
+			// the view of the picture of the game (the same one the usual drawing uses)
+			VkImageView srcView = texViewVk->GetViewRGBA()->m_textureImageView;
+			fsrView = m_fsr1->Upscale(m_state.currentCommandBuffer, srcView, baseTex->GetDefaultLayout(), (uint32)srcW, (uint32)srcH, (uint32)imageWidth,
+									  (uint32)imageHeight, sharpness, sharpen);
 			if (fsrView != VK_NULL_HANDLE)
 			{
 				// the sampler of the picture (the same as the one of the textures of the game)

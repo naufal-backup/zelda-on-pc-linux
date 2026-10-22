@@ -259,8 +259,6 @@ VulkanFSR1::VulkanFSR1(VkDevice device, VkPhysicalDevice physicalDevice) : m_dev
 VulkanFSR1::~VulkanFSR1()
 {
 	vkDeviceWaitIdle(m_device);
-	if (m_srcView)
-		vkDestroyImageView(m_device, m_srcView, nullptr);
 	DestroyImage(m_easu);
 	DestroyImage(m_result);
 	if (m_easuPipeline)
@@ -467,36 +465,17 @@ bool VulkanFSR1::EnsureImages(uint32 dstW, uint32 dstH)
 	return true;
 }
 
-VkImageView VulkanFSR1::Upscale(VkCommandBuffer cmd, VkImage src, VkFormat srcFormat, VkImageLayout srcLayout, uint32 srcW, uint32 srcH, uint32 dstW, uint32 dstH,
+VkImageView VulkanFSR1::Upscale(VkCommandBuffer cmd, VkImageView srcView, VkImageLayout srcLayout, uint32 srcW, uint32 srcH, uint32 dstW, uint32 dstH,
 								 float sharpness, bool sharpen)
 {
-	if (src == VK_NULL_HANDLE || srcW == 0 || srcH == 0 || dstW == 0 || dstH == 0)
+	if (srcView == VK_NULL_HANDLE || srcW == 0 || srcH == 0 || dstW == 0 || dstH == 0)
 		return VK_NULL_HANDLE;
 	if (srcW >= dstW && srcH >= dstH)
 		return VK_NULL_HANDLE; // the picture is not made bigger: nothing to do
 	if (!EnsurePipelines() || !EnsureImages(dstW, dstH))
 		return VK_NULL_HANDLE;
 
-	// the view of the picture of the game (it is sampled by the first pass): it is made once for every picture
-	if (m_srcImage != src)
-	{
-		if (m_srcView)
-			vkDestroyImageView(m_device, m_srcView, nullptr);
-		m_srcView = VK_NULL_HANDLE;
-		m_srcImage = src;
-		VkImageViewCreateInfo vi{VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO};
-		vi.image = src;
-		vi.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		vi.format = srcFormat;
-		vi.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
-		if (vkCreateImageView(m_device, &vi, nullptr, &m_srcView) != VK_SUCCESS)
-		{
-			m_srcImage = VK_NULL_HANDLE;
-			return VK_NULL_HANDLE;
-		}
-	}
-	const VkImageView srcView = m_srcView;
-
+	// the view of the picture of the game (it is sampled by the first pass)
 	// the descriptor sets of the two passes
 	VkDescriptorSetAllocateInfo ai{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
 	ai.descriptorPool = m_pool;

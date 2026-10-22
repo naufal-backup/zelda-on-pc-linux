@@ -3,6 +3,37 @@
 All notable changes of Zelda on PC are listed here. The project follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html); the Linux builds carry the suffix `-linux`.
 
+## Unreleased
+
+### The mods of the graphic packs
+
+- **`Esc` → Mods** (new): the mods of the graphic packs of the community, with the names of the edition and not the
+  names of the packs ("Off" instead of "None (Use Individual Settings)"). The weather, the fog of the distance, the
+  cel shading, the length of the day, the time of the day, the speed of the clouds, the speed of the cursor of the
+  menus, the speed of the camera of the game, the colours of the guardians and of the divine beams, the draw distance
+  and the level of detail.
+- **They are changed while the game runs**, without a restart of the game: the packs are read again and the shaders
+  are used at once (the textures that are in the cache change on the next start).
+- **The cheats that are presets of a pack join the page of the cheats**: the Yiga clan, the skeletons, the Keese, the
+  Chuchu jellies, the Octarocks, the Lizalfos and the animals do not appear any more.
+- Only a few presets of each category are offered (the packs have many more), so that the menu stays simple.
+
+### AMD FSR 1.0
+
+- **`Esc` → Graphics → FSR 1.0 Upscaler** (new): the game draws its picture smaller and the graphics card makes it
+  bigger again (EASU), with more detail than a simple scaling; the picture is then sharpened (RCAS). The modes are
+  Off, Quality (1.5x), Balanced (1.7x), Performance (2x) and Ultra Performance (3x), and the sharpness of the picture
+  is a setting of its own.
+- The two passes are compute passes of the Vulkan renderer: no library of AMD is needed (the AMD SDK has no build for
+  Linux) and nothing is injected in the game.
+
+### Fixed
+
+- **The Vulkan driver is found even when its manifest has a relative path** (the driver of AMD on many systems), and
+  it is now the first option of the page of the graphics.
+- The frame generation stays in the menu, but it is grey when the runtime of AMD is not there (the option is not taken
+  away, it is only not usable).
+
 ## v1.3.3-linux
 
 The release of the PC Edition for Linux: the mouse is now the mouse everywhere, the camera turns all the way

@@ -30,8 +30,8 @@ public:
 	// picture is then drawn as usual).
 	//   sharpness: 0 = the most sharpening, 1 = no sharpening (the scale of RCAS)
 	//   sharpen:   false = EASU only (no RCAS)
-	VkImageView Upscale(VkCommandBuffer cmd, VkImage src, VkFormat srcFormat, VkImageLayout srcLayout, uint32 srcW, uint32 srcH, uint32 dstW, uint32 dstH,
-						float sharpness, bool sharpen);
+	VkImageView Upscale(VkCommandBuffer cmd, VkImageView srcView, VkImageLayout srcLayout, uint32 srcW, uint32 srcH, uint32 dstW, uint32 dstH, float sharpness,
+						bool sharpen);
 
 	// the picture that was made last (the view that the blit draws)
 	VkImageView GetResultView() const { return m_result.view; }
@@ -48,9 +48,6 @@ private:
 
 	Image m_easu;    // the picture made by EASU (only when RCAS sharpens it)
 	Image m_result;  // the picture that is drawn in the window
-
-	VkImage m_srcImage = VK_NULL_HANDLE;  // the picture of the game (the view of it is made once)
-	VkImageView m_srcView = VK_NULL_HANDLE;
 
 	VkSampler m_sampler = VK_NULL_HANDLE;
 	VkDescriptorSetLayout m_setLayout = VK_NULL_HANDLE;
