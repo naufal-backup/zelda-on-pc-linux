@@ -41,7 +41,7 @@ for pack in "BreathOfTheWild/Graphics" "BreathOfTheWild/Mods/FPS++" "BreathOfThe
             "BreathOfTheWild/Cheats/ArrowDrawSpeed" "BreathOfTheWild/Cheats/Durability" \
             "BreathOfTheWild/Cheats/MasterModeOptions" "BreathOfTheWild/Cheats/9999StampsLimit" \
             "BreathOfTheWild/Cheats/InfiniteAmiibo" "BreathOfTheWild/Cheats/InfiniteArrows" \
-            "BreathOfTheWild/Cheats/InfiniteDaruk" "BreathOfTheWild/Chearts/InfiniteHearts" \
+            "BreathOfTheWild/Cheats/InfiniteDaruk" "BreathOfTheWild/Cheats/InfiniteHearts" \
             "BreathOfTheWild/Cheats/InfiniteMipha" "BreathOfTheWild/Cheats/InfiniteMotorcycleEnergy" \
             "BreathOfTheWild/Cheats/InfiniteRevali" "BreathOfTheWild/Cheats/InfiniteStamina" \
             "BreathOfTheWild/Cheats/InfiniteUrbosa"; do
