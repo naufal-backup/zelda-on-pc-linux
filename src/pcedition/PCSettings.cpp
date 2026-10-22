@@ -247,6 +247,7 @@ namespace pce
 			Get(m, "Game", "TemperatureUnit", s.temperatureUnit);
 			s.temperatureUnit = std::clamp(s.temperatureUnit, 0, 2);
 			Get(m, "Map", "Enabled", s.mapEnabled);
+			Get(m, "Map", "CheatsEnabled", s.cheatsEnabled);
 			Get(m, "Map", "Overlay", s.mapOverlay);
 			Get(m, "Map", "PanelOpen", s.mapPanelOpen);
 			Get(m, "Map", "AutoHide", s.mapAutoHide);
@@ -351,6 +352,7 @@ namespace pce
 		o << "TemperatureUnit=" << s.temperatureUnit << "\n\n";
 		o << "[Map]\n";
 		o << "Enabled=" << b(s.mapEnabled) << "\n";
+		o << "CheatsEnabled=" << b(s.cheatsEnabled) << "\n";
 		o << "Overlay=" << b(s.mapOverlay) << "\n";
 		o << "PanelOpen=" << b(s.mapPanelOpen) << "\n";
 		o << "AutoHide=" << b(s.mapAutoHide) << "\n";

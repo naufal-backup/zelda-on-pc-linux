@@ -472,6 +472,14 @@ namespace pce::Overlay
 										 "Completely enable or disable the interactive map and all its UI on the Sheikah Slate world map. (Shortcut: H on map)"));
 				p.items.push_back(toggle("Interactive Map Overlay", &sEdit.mapOverlay,
 										 "Shows interactive markers, item search and category filters directly on the Sheikah Slate world map."));
+				{
+					// the cheats are a page of their own: it is only there when they are wanted
+					Item it = toggle("Enable Cheats", &sEdit.cheatsEnabled,
+									 "Shows the Cheats page with the cheats of the graphic pack (infinite hearts, the bow draw speed, "
+									 "the durability, the options of the master mode).");
+					it.rebuild = true;
+					p.items.push_back(it);
+				}
 				p.items.push_back(toggle("Map: Auto-Hide Claimed", &sEdit.mapAutoHide,
 										 "Automatically hides opened treasure chests, completed shrines, activated towers and collected Korok seeds."));
 				p.items.push_back(header("amiibo"));
@@ -524,25 +532,28 @@ namespace pce::Overlay
 			}
 			{
 				// the cheats of the graphic pack: they are the packs of the community, switched on here
-				Page p{"Cheats"};
-				for (int i = 0; i < kCheatCount; i++)
-					sCheatSwitch[i] = (sEdit.cheatMask >> i) & 1;
-				for (int i = 0; i < kMasterModeCount; i++)
-					sMasterModeSwitch[i] = (sEdit.masterModeMask >> i) & 1;
-				p.items.push_back(header("Cheats"));
-				for (int i = 0; i < kCheatCount; i++)
-					p.items.push_back(toggle(kCheatNames[i], &sCheatSwitch[i], "One of the cheats of the graphic pack of the community."));
-				p.items.push_back(header("Master Mode"));
-				for (int i = 0; i < kMasterModeCount; i++)
-					p.items.push_back(toggle(kMasterModeNames[i], &sMasterModeSwitch[i], "An option of the master mode of the graphic pack of the community."));
-				p.items.push_back(header("More"));
-				p.items.push_back(choice("Bow Draw Speed", &sEdit.arrowDrawSpeed,
-										 {"Disable Bow", "0.5x", "0.75x", "1x", "1.5x", "2x", "3x", "10x", "20x", "40x"},
-										 "How fast the bow is drawn. The quicker it is, the more often a shot lands."));
-				p.items.push_back(choice("Durability", &sEdit.durability,
-										 {"One Hit", "x1", "x1.5", "x2", "x3", "x4", "x5", "x10", "Unbreakable"},
-										 "How fast the weapons wear out. Unbreakable never does."));
-				pages.push_back(std::move(p));
+				if (sEdit.cheatsEnabled)
+				{
+					Page p{"Cheats"};
+					for (int i = 0; i < kCheatCount; i++)
+						sCheatSwitch[i] = (sEdit.cheatMask >> i) & 1;
+					for (int i = 0; i < kMasterModeCount; i++)
+						sMasterModeSwitch[i] = (sEdit.masterModeMask >> i) & 1;
+					p.items.push_back(header("Cheats"));
+					for (int i = 0; i < kCheatCount; i++)
+						p.items.push_back(toggle(kCheatNames[i], &sCheatSwitch[i], "One of the cheats of the graphic pack of the community."));
+					p.items.push_back(header("Master Mode"));
+					for (int i = 0; i < kMasterModeCount; i++)
+						p.items.push_back(toggle(kMasterModeNames[i], &sMasterModeSwitch[i], "An option of the master mode of the graphic pack of the community."));
+					p.items.push_back(header("More"));
+					p.items.push_back(choice("Bow Draw Speed", &sEdit.arrowDrawSpeed,
+											 {"Disable Bow", "0.5x", "0.75x", "1x", "1.5x", "2x", "3x", "10x", "20x", "40x"},
+											 "How fast the bow is drawn. The quicker it is, the more often a shot lands."));
+					p.items.push_back(choice("Durability", &sEdit.durability,
+											 {"One Hit", "x1", "x1.5", "x2", "x3", "x4", "x5", "x10", "Unbreakable"},
+											 "How fast the weapons wear out. Unbreakable never does."));
+					pages.push_back(std::move(p));
+				}
 			}
 			return pages;
 		}
