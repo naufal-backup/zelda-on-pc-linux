@@ -213,6 +213,11 @@ namespace pce
 			Get(m, "Graphics", "DownscaleFilter", s.downscaleFilter);
 			Get(m, "Graphics", "DrawDistance", s.drawDistance);
 			Get(m, "Graphics", "DrawDistanceObjects", s.drawDistanceObjects);
+			Get(m, "Graphics", "Clarity", s.clarity);
+			Get(m, "Graphics", "DepthOfField", s.depthOfField);
+			Get(m, "Graphics", "Reflections", s.reflections);
+			Get(m, "Graphics", "ReflectionRange", s.reflectionRange);
+			Get(m, "Graphics", "Anisotropy", s.anisotropy);
 			Get(m, "Graphics", "ArrowDrawSpeed", s.arrowDrawSpeed);
 			Get(m, "Graphics", "Durability", s.durability);
 			Get(m, "Graphics", "CheatMask", s.cheatMask);
@@ -318,6 +323,11 @@ namespace pce
 		o << "DownscaleFilter=" << s.downscaleFilter << "\n";
 		o << "DrawDistance=" << s.drawDistance << "\n";
 		o << "DrawDistanceObjects=" << s.drawDistanceObjects << "\n";
+		o << "Clarity=" << s.clarity << "\n";
+		o << "DepthOfField=" << s.depthOfField << "\n";
+		o << "Reflections=" << s.reflections << "\n";
+		o << "ReflectionRange=" << s.reflectionRange << "\n";
+		o << "Anisotropy=" << s.anisotropy << "\n";
 		o << "ArrowDrawSpeed=" << s.arrowDrawSpeed << "\n";
 		o << "Durability=" << s.durability << "\n";
 		o << "CheatMask=" << s.cheatMask << "\n";

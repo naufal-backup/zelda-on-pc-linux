@@ -128,6 +128,13 @@ namespace pce
 		// the draw distance of the graphic pack (the level of detail): the objects and the terrain
 		int drawDistance = 2;
 		int drawDistanceObjects = 1;
+		// the shader filters of the "Enhancements" pack: the preset of the shader, the depth of field, the
+		// reflections and the anisotropic filtering of the textures
+		int clarity = 1;
+		int depthOfField = 0;
+		int reflections = 0;
+		int reflectionRange = 2;
+		int anisotropy = 3;
 		// the cheats of the graphic pack: the packs that are switched on and the options of the master mode
 		uint32 cheatMask = 0;
 		uint32 masterModeMask = 0;

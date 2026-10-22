@@ -38,6 +38,7 @@ mkdir -p "$extract"
 unzip -q -o "$zip" -d "$extract"
 
 for pack in "BreathOfTheWild/Graphics" "BreathOfTheWild/Mods/FPS++" "BreathOfTheWild/Mods/DrawDistance" \
+            "BreathOfTheWild/Enhancements" \
             "BreathOfTheWild/Cheats/ArrowDrawSpeed" "BreathOfTheWild/Cheats/Durability" \
             "BreathOfTheWild/Cheats/MasterModeOptions" "BreathOfTheWild/Cheats/9999StampsLimit" \
             "BreathOfTheWild/Cheats/InfiniteAmiibo" "BreathOfTheWild/Cheats/InfiniteArrows" \

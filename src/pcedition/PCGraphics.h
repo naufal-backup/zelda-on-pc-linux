@@ -7,6 +7,25 @@
 
 namespace pce::Graphics
 {
+	// The presets of the "Enhancements" pack of the community (the shader filters and the texture detail). They are
+	// used by the settings (the labels) and by the pack itself (the names of the presets).
+	inline constexpr const char* const kClarityPresets[] = {
+		"Disabled (Default)", "Serfrost's Preset (Recommended)", "Serfrost's Preset (Dim Display)",
+		"Serfrost's Preset (Bright Display)", "Bruz's Preset", "CellHunter's Preset", "Jamie's Preset",
+		"t3nka Neutral+", "The Complaining Gamer's Preset", "ViskClarity Preset", "Contrasty Preset",
+		"Filmic Preset", "Silentverge's Survival of the Wild Preset (Warmer)",
+		"Silentverge's Survival of the Wild Preset (Colder)", "Godot's Mexican Preset", "Hexaae's Clear Preset",
+		"MaranBr Preset (Little More Intense)", "YeMaoWuXin's Preset (Bright colors)",
+		"YeMaoWuXin's Preset (Vivid and clear)", "Cobalt's Preset (Saturated & Bright)", "User-Defined Preset",
+	};
+	inline constexpr const char* const kReflectionRangePresets[] = {
+		"Disabled", "Extra Low (2 samples)", "Low (4 samples, Default)", "Medium (8 samples)",
+		"High (16 samples)", "Extra High (32 samples)", "Extreme (64 samples)",
+	};
+	inline constexpr const char* const kAnisotropyPresets[] = {
+		"Low (1x)", "Medium (2x)", "High (4x)", "Ultra (8x, Default)", "Extreme (16x)",
+	};
+
 	struct ResolutionOption
 	{
 		int width, height;

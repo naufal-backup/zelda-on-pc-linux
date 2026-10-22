@@ -578,6 +578,16 @@ blr
 				SelectPreset(dd, "NPC, Enemies And Other Entities", kDrawDistance[std::clamp(s.drawDistance, 0, 5)], gfxChanged);
 				SelectPreset(dd, "Terrain, Buildings, Bushes And Other Objects", kDrawDistanceObjects[std::clamp(s.drawDistanceObjects, 0, 3)], gfxChanged);
 			}
+			// the shader filters of the graphic pack (the "Enhancements" pack of the community)
+			if (auto en = FindPack("BreathOfTheWild/Enhancements"))
+			{
+				en->SetEnabled(true);
+				SelectPreset(en, "Clarity", kClarityPresets[std::clamp(s.clarity, 0, (int)std::size(kClarityPresets) - 1)], gfxChanged);
+				SelectPreset(en, "Depth Of Field", s.depthOfField ? "Enabled" : "Disabled", gfxChanged);
+				SelectPreset(en, "Reflections", s.reflections ? "Enhanced Reflections" : "Normal Reflections", gfxChanged);
+				SelectPreset(en, "Reflection Range", kReflectionRangePresets[std::clamp(s.reflectionRange, 0, (int)std::size(kReflectionRangePresets) - 1)], gfxChanged);
+				SelectPreset(en, "Anisotropic Filtering", kAnisotropyPresets[std::clamp(s.anisotropy, 0, (int)std::size(kAnisotropyPresets) - 1)], gfxChanged);
+			}
 			// the cheats of the graphic pack
 			if (auto ch = FindPack("BreathOfTheWild/Cheats/ArrowDrawSpeed"))
 			{

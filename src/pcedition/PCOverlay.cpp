@@ -215,7 +215,9 @@ namespace pce::Overlay
 			                        old.downscaleFilter != copy.downscaleFilter || old.drawDistance != copy.drawDistance ||
 			                        old.drawDistanceObjects != copy.drawDistanceObjects || old.cheatMask != copy.cheatMask ||
 			                        old.masterModeMask != copy.masterModeMask || old.arrowDrawSpeed != copy.arrowDrawSpeed ||
-			                        old.durability != copy.durability;
+			                        old.durability != copy.durability || old.clarity != copy.clarity ||
+			                        old.depthOfField != copy.depthOfField || old.reflections != copy.reflections ||
+			                        old.reflectionRange != copy.reflectionRange || old.anisotropy != copy.anisotropy;
 			if (gfxChanged)
 				Graphics::ApplyLive();
 			if (old.volume != copy.volume || old.speakers != copy.speakers || old.audioDevice != copy.audioDevice)
@@ -483,6 +485,41 @@ namespace pce::Overlay
 				p.items.push_back(button("Open amiibo Folder", "The folder with your amiibo files. Files put there by hand are offered as well.",
 										 []() { OpenAmiiboFolder(); }));
 				p.items.push_back(button("Quit to Desktop", "Unsaved progress since the last save will be lost.", []() { sConfirmQuit = true; }));
+				pages.push_back(std::move(p));
+			}
+			{
+				// the shader filters of the graphic pack
+				Page p{"Filters"};
+				{
+					std::vector<std::string> labels;
+					for (const char* p : Graphics::kClarityPresets)
+						labels.emplace_back(p);
+					p.items.push_back(choice("Shader Preset", &sEdit.clarity, labels,
+											 "The preset of the shader that draws the picture: the sharpness, the colours, the "
+											 "brightness and the contrast of the game."));
+				}
+				p.items.push_back(choice("Depth of Field", &sEdit.depthOfField, {"Off", "On"},
+										 "The background goes out of focus. The game does not have it, the shader adds it (it costs "
+										 "some performance)."));
+				p.items.push_back(choice("Reflections", &sEdit.reflections, {"Normal", "Enhanced"},
+										 "The reflections in the water and on the ground: the enhanced ones are sharper, they cost "
+										 "more performance."));
+				{
+					std::vector<std::string> labels;
+					for (const char* p : Graphics::kReflectionRangePresets)
+						labels.emplace_back(p);
+					p.items.push_back(choice("Reflection Range", &sEdit.reflectionRange, labels,
+											 "How far the reflections are drawn. The higher the number of samples, the further they "
+											 "reach and the slower the game is."));
+				}
+				{
+					std::vector<std::string> labels;
+					for (const char* p : Graphics::kAnisotropyPresets)
+						labels.emplace_back(p);
+					p.items.push_back(choice("Anisotropic Filtering", &sEdit.anisotropy, labels,
+											 "The sharpness of the textures at a slant: the higher the number, the sharper the ground "
+											 "looks when it is seen from the side."));
+				}
 				pages.push_back(std::move(p));
 			}
 			{
