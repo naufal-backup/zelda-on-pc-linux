@@ -1,6 +1,7 @@
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanFSR1.h"
 
 #include <cmath>
+#include <cstdint>
 #include <cstring>
 #include <string>
 
@@ -298,7 +299,8 @@ bool VulkanFSR1::CreateImage(Image& img, uint32 w, uint32 h, VkFormat format, Vk
 	ii.tiling = VK_IMAGE_TILING_OPTIMAL;
 	ii.usage = usage;
 	ii.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	ii.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	// the picture is written by the shader and read by it: the layout GENERAL is good for both
+	ii.initialLayout = VK_IMAGE_LAYOUT_GENERAL;
 	if (vkCreateImage(m_device, &ii, nullptr, &img.image) != VK_SUCCESS)
 		return false;
 	VkMemoryRequirements req;
@@ -536,7 +538,7 @@ VkImageView VulkanFSR1::Upscale(VkCommandBuffer cmd, VkImageView srcView, VkImag
 		struct Push
 		{
 			float srcWidth, srcHeight, dstWidth, dstHeight;
-			int32 dstOffsetX, dstOffsetY, pad0, pad1;
+			int32_t dstOffsetX, dstOffsetY, pad0, pad1;
 		} push;
 		push.srcWidth = (float)srcW;
 		push.srcHeight = (float)srcH;
@@ -557,7 +559,7 @@ VkImageView VulkanFSR1::Upscale(VkCommandBuffer cmd, VkImageView srcView, VkImag
 		struct Push
 		{
 			float srcWidth, srcHeight, sharpness, pad0;
-			int32 dstOffsetX, dstOffsetY, pad1, pad2;
+			int32_t dstOffsetX, dstOffsetY, pad1, pad2;
 		} push;
 		push.srcWidth = (float)dstW;
 		push.srcHeight = (float)dstH;
