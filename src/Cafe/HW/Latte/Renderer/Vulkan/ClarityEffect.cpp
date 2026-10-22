@@ -97,7 +97,7 @@ namespace pce::Reshade
 			const ClarityUniformSlot& u = kClarityUniforms[slot];
 			if (u.isInt)
 			{
-				const int32 value = (int32)v.value;
+				const int32_t value = (int32_t)v.value;
 				std::memcpy(entry.uniformData.data() + u.offset, &value, sizeof(value));
 			}
 			else

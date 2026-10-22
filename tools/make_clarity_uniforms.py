@@ -69,7 +69,7 @@ def main():
         is_int = "true" if glsl_type == "int" else "false"
         out.append(f'\t\t{{"{name}", {off}, {count}, {is_int}}},')
     out.append("\t};")
-    out.append(f"\tinline constexpr int kClarityUniformCount = {len(layout)};")
+    out.append(f"\tinline constexpr int kClarityUniformCount = {len(layout)};  // jumlah uniform (bukan byte)")
     out.append("")
     out.append("\t// Kedudukan uniform di dalam blok, untuk pemeriksaan saat build.")
     out.append("\tinline int ClarityUniformIndex(const char* name)")

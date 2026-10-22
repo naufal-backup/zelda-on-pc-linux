@@ -26,8 +26,6 @@ class RendererShader;
 namespace pce::Reshade
 {
 	// Jumlah uniform yang dipakai Clarity.fx. Harus sama dengan urutan di shader.
-	inline constexpr int kClarityUniformCount = 56;
-
 	class ClarityEffect
 	{
 	public:

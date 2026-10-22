@@ -85,7 +85,7 @@ namespace pce::Reshade
 		{"CurvesPss", 348, 1, true},
 		{"vibpass", 352, 1, true},
 	};
-	inline constexpr int kClarityUniformCount = 65;
+	inline constexpr int kClarityUniformCount = 65;  // jumlah uniform (bukan byte)
 
 	// Kedudukan uniform di dalam blok, untuk pemeriksaan saat build.
 	inline int ClarityUniformIndex(const char* name)

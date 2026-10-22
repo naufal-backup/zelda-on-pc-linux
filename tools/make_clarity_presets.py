@@ -153,7 +153,14 @@ def main():
         out.append(f"\t// {name}")
         out.append(f"\tinline constexpr ClarityValue kClarityValues{i}[] = {{")
         for uname, is_int, value in vals:
-            v = f"{value:g}f" if not is_int else f"{int(value)}"
+            if is_int:
+                v = f"{int(value)}"
+            else:
+                # C++ needs a digit on both sides of the point: 1.0f, not 1f
+                t = f"{value:g}"
+                if "." not in t and "e" not in t and "E" not in t:
+                    t += ".0"
+                v = t + "f"
             out.append(f'\t\t{{"{uname}", {"true" if is_int else "false"}, {v}}},')
         out.append("\t};")
         out.append("")
