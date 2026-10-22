@@ -84,7 +84,7 @@ namespace pce
 		float mouseSensitivity = 2.0f;      // multiplier; base = 0.022 deg per count (Source-style)
 		float mouseSensitivityY = 1.0f;     // vertical multiplier relative to horizontal
 		float aimSensitivity = 0.8f;        // multiplier while aiming (bow/scope/first person)
-		float aimLimit = 60.0f;             // hard limit of the mouse rotation from the camera's home position, in degrees (0 = unlimited)
+		float aimLimit = 0.0f;               // hard limit of the mouse rotation from the camera's home position, in degrees (0 = unlimited)
 		bool invertX = false;
 		bool invertY = false;
 		float velocityWindowMs = 16.0f;     // window over which mouse velocity is measured
