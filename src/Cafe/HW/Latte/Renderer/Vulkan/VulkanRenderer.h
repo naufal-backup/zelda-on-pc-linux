@@ -156,6 +156,12 @@ public:
 	// memory management
 	std::unique_ptr<VKRMemoryManager> memoryManager;
 	std::unique_ptr<class VulkanFSRInputs> m_fsrInputs;
+	std::unique_ptr<class VulkanFSR1> m_fsr1;          // AMD FSR 1.0 (the picture made bigger by the GPU)
+	VkDescriptorSet m_fsrBlitSet = VK_NULL_HANDLE;      // the descriptor set of the picture of FSR
+	VkImageView m_fsrBlitView = VK_NULL_HANDLE;         // the picture the descriptor set was made for
+	uint64 m_fsrSettingsRev = 0;                        // the settings of FSR (they are read when they change)
+	int m_fsrUpscaler = 0;
+	float m_fsrSharpness = 5.0f;
 	bool m_pceFsrDevice = false;
 	uint64 m_fsrDumpCmdBuffer = 0;
 	VKRMemoryManager* GetMemoryManager() const { return memoryManager.get(); };
@@ -288,6 +294,8 @@ public:
 	void DrawBackbufferQuad(LatteTextureView* texView, RendererOutputShader* shader, bool useLinearTexFilter, sint32 imageX, sint32 imageY, sint32 imageWidth, sint32 imageHeight, bool padView, bool clearBackground) override;
 	void CreateDescriptorPool();
 	VkDescriptorSet backbufferBlit_createDescriptorSet(VkDescriptorSetLayout descriptor_set_layout, LatteTextureViewVk* texViewVk, bool useLinearTexFilter);
+	// the same, but with a picture of the program (the picture that AMD FSR 1.0 made bigger)
+	VkDescriptorSet backbufferBlit_createDescriptorSet(VkDescriptorSetLayout descriptor_set_layout, VkImageView imageView, VkSampler sampler);
 
 	robin_hood::unordered_flat_map<uint64, robin_hood::unordered_flat_map<uint64, PipelineInfo*> > m_pipeline_info_cache; // using robin_hood::unordered_flat_map is twice as fast (1-2% overall CPU time reduction)
 	void draw_debugPipelineHashState();

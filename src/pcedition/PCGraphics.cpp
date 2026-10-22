@@ -550,6 +550,14 @@ blr
 					static const char* kAspect[] = {"16:9", "16:9", "16:10", "21:9", "32:9"};
 					SelectPreset(gfx, "Aspect Ratio", kAspect[aspect], gfxChanged);
 					SelectPreset(gfx, "Resolution", fmt::format("{}x{}", res[ri].width, res[ri].height), gfxChanged);
+					// AMD FSR 1.0: the picture of the game is drawn smaller (the mode says how much smaller) and the
+					// graphics card makes it bigger again
+					if (s.fsrUpscaler > 0)
+					{
+						const std::string fsrName = FsrResolutionPresetName(s.fsrUpscaler);
+						if (!fsrName.empty())
+							SelectPresetExact(gfx, "Resolution", fsrName, gfxChanged);
+					}
 					if (aspect >= 3)
 						SelectPreset(gfx, "Ultrawide HUD Mode", s.ultrawideHud == 1 ? "Centered HUD" : "Edge HUD", gfxChanged);
 					cemuLog_log(LogType::Force, "PCE: aspect ratio {} (setting {}), resolution {}x{}", kAspect[aspect], s.aspectRatio, res[ri].width, res[ri].height);
@@ -666,6 +674,75 @@ blr
 		const char* name = BOOST_OS_WINDOWS ? "amd_fidelityfx_vk.dll" : "libamd_fidelityfx_vk.so";
 		std::error_code ec;
 		return fs::exists(pce::GetExeDir() / name, ec);
+	}
+
+	// The size of the picture of the game for a mode of AMD FSR 1.0: the picture of the window divided by the ratio
+	// of the mode (a multiple of eight, as the picture of the game likes it).
+	void FsrResolution(int mode, int& width, int& height)
+	{
+		width = height = 0;
+		if (mode < 1 || mode > kFsrModeCount)
+			return;
+		int sw = 0, sh = 0;
+		WindowSystem::GetScreenSize(sw, sh);
+		if (sw <= 0 || sh <= 0)
+			return;
+		const float ratio = kFsrModes[mode - 1].ratio;
+		width = ((int)((float)sw / ratio) / 8) * 8;
+		height = ((int)((float)sh / ratio) / 8) * 8;
+		if (width < 320)
+			width = 320;
+		if (height < 180)
+			height = 180;
+	}
+
+	std::string FsrResolutionPresetName(int mode)
+	{
+		int w = 0, h = 0;
+		FsrResolution(mode, w, h);
+		if (w == 0)
+			return {};
+		return fmt::format("{}x{} (FSR {})", w, h, kFsrModes[mode - 1].name);
+	}
+
+	// The sizes of the modes are added to the graphic pack of the graphics: the game draws its picture in them
+	// and the graphics card makes it bigger again.
+	void AddFsrResolutions()
+	{
+		const fs::path rules = PacksDir() / "BreathOfTheWild" / "Graphics" / "rules.txt";
+		std::error_code ec;
+		if (!fs::exists(rules, ec))
+			return;
+		// the sizes of a former run are taken out (they are always at the end of the file)
+		std::string content;
+		{
+			std::ifstream f(rules);
+			if (!f)
+				return;
+			content.assign((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+		}
+		const size_t marker = content.find("(FSR ");
+		if (marker != std::string::npos)
+		{
+			const size_t start = content.rfind("[Preset]", marker);
+			if (start != std::string::npos)
+				content = content.substr(0, start);
+		}
+		std::string add;
+		for (int mode = 1; mode <= kFsrModeCount; mode++)
+		{
+			int w = 0, h = 0;
+			FsrResolution(mode, w, h);
+			if (w == 0)
+				continue;
+			add += fmt::format("\n[Preset]\nname = {}x{} (FSR {})\ncategory = Resolution\n$width = {}\n$height = {}\n", w, h, kFsrModes[mode - 1].name, w, h);
+		}
+		if (add.empty())
+			return;
+		std::ofstream f(rules, std::ios::trunc);
+		if (!f)
+			return;
+		f << content << add;
 	}
 
 	// The presets of a pack, with the names of the pack (the settings show the rewritten ones). When a list of presets
@@ -1014,6 +1091,7 @@ blr
 
 	void PrepareGraphicPacks()
 	{
+		// (the sizes of AMD FSR 1.0 are added to the pack of the graphics, at the end of Prepare)
 		std::error_code ec;
 		const fs::path dst = PacksDir() / "BreathOfTheWild";
 		// copy the community packs we use into the data folder: once, and again when the shipped copy changed
@@ -1057,6 +1135,8 @@ blr
 		// keyboard & mouse button prompts (font archive + resource size table in the pack's content folder)
 		Prompts::Prepare(pce);
 		Prompts::PrepareTips(pce);
+		// the sizes of the modes of AMD FSR 1.0 are added to the pack of the graphics (the game draws them)
+		AddFsrResolutions();
 		sAppliedAtBoot = GetSettings();
 	}
 
