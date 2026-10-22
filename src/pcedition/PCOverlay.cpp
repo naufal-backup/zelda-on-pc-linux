@@ -1907,7 +1907,8 @@ namespace pce::Overlay
 
 		// ---------- background ----------
 		dl->AddRectFilled(ImVec2(0, 0), ImVec2(W, H), IM_COL32(0, 0, 0, (int)(150 * a)));
-		const float pw = std::min(W * 0.70f, H * 1.25f), ph = H * 0.78f;
+		// (the panel is wide enough for the tabs of the pages, there are more of them now)
+		const float pw = std::min(W * 0.88f, H * 1.55f), ph = H * 0.78f;
 		const ImVec2 p0((W - pw) * 0.5f, (H - ph) * 0.5f + (1.0f - a) * H * 0.03f), p1(p0.x + pw, p0.y + ph);
 		dl->AddRectFilled(p0, p1, alpha(kPanel));
 		dl->AddRect(p0, p1, alpha(kBorder), 0, 0, 1.5f);
