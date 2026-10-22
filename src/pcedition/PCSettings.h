@@ -138,6 +138,8 @@ namespace pce
 		// the Vulkan driver to use (the path of its ICD manifest): a machine can have several drivers for the same
 		// card (the proprietary driver of AMD and RADV, for example) and the loader then offers all of them
 		std::string vulkanDriver;
+		// the chosen preset of every option of a community graphic pack (the name of the pack, see Graphics::kPackOptions)
+		std::array<std::string, 32> packPresets{};
 		// the cheats of the graphic pack: the packs that are switched on and the options of the master mode
 		uint32 cheatMask = 0;
 		uint32 masterModeMask = 0;

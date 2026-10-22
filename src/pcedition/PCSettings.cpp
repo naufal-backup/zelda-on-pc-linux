@@ -219,6 +219,11 @@ namespace pce
 			Get(m, "Graphics", "ReflectionRange", s.reflectionRange);
 			Get(m, "Graphics", "Anisotropy", s.anisotropy);
 			Get(m, "Graphics", "VulkanDriver", s.vulkanDriver);
+			for (int i = 0; i < (int)s.packPresets.size(); i++)
+			{
+				std::string key = "PackPreset" + std::to_string(i);
+				Get(m, "Graphics", key.c_str(), s.packPresets[i]);
+			}
 			Get(m, "Graphics", "ArrowDrawSpeed", s.arrowDrawSpeed);
 			Get(m, "Graphics", "Durability", s.durability);
 			Get(m, "Graphics", "CheatMask", s.cheatMask);
@@ -330,7 +335,12 @@ namespace pce
 		o << "Reflections=" << s.reflections << "\n";
 		o << "ReflectionRange=" << s.reflectionRange << "\n";
 		o << "Anisotropy=" << s.anisotropy << "\n";
-			o << "VulkanDriver=" << s.vulkanDriver << "\n";
+		o << "VulkanDriver=" << s.vulkanDriver << "\n";
+		for (int i = 0; i < (int)s.packPresets.size(); i++)
+		{
+			if (!s.packPresets[i].empty())
+				o << "PackPreset" << i << "=" << s.packPresets[i] << "\n";
+		}
 		o << "ArrowDrawSpeed=" << s.arrowDrawSpeed << "\n";
 		o << "Durability=" << s.durability << "\n";
 		o << "CheatMask=" << s.cheatMask << "\n";

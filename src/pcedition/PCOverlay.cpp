@@ -88,6 +88,8 @@ namespace pce::Overlay
 			bool restart = false;
 			bool rebuild = false; // other items depend on this one: the pages are built again after a change
 			bool zeroIsInf = false; // the lowest value means "no limit": it is shown as ∞
+			bool disabled = false; // the option is shown, but it cannot be used on this system
+			std::string disabledReason;
 		};
 
 		struct Page
@@ -181,6 +183,8 @@ namespace pce::Overlay
 		};
 		// the Vulkan driver: 0 = all of them (the loader decides), 1..n = the n-th driver of the list
 		int sVulkanDriverIndex = 0;
+		// the chosen preset of every option of a community graphic pack (the index in the list of the pack)
+		int sPackOptionIndex[Graphics::kPackOptionCount]{};
 
 		double Now()
 		{
@@ -211,6 +215,16 @@ namespace pce::Overlay
 				const auto& drivers = Graphics::GetVulkanDrivers();
 				const int idx = std::clamp(sVulkanDriverIndex, 0, (int)drivers.size());
 				sEdit.vulkanDriver = (idx == 0) ? std::string() : drivers[idx - 1].manifest;
+			}
+			// the presets of the community graphic packs: the index back into the names of the pack
+			for (int i = 0; i < Graphics::kPackOptionCount; i++)
+			{
+				const auto& o = Graphics::kPackOptions[i];
+				const auto& choices = Graphics::PackPresetChoices(o.pack, o.category, o.presets);
+				if (choices.empty())
+					continue;
+				const int idx = std::clamp(sPackOptionIndex[i], 0, (int)choices.size() - 1);
+				sEdit.packPresets[i] = choices[idx].first;
 			}
 			const Settings old = GetSettings();
 			Settings copy = sEdit;
@@ -382,6 +396,23 @@ namespace pce::Overlay
 			}
 			{
 				Page p{"Graphics"};
+				{
+					// the Vulkan driver: a machine can have several of them for the same card
+					const auto& drivers = Graphics::GetVulkanDrivers();
+					sVulkanDriverIndex = 0;
+					for (size_t i = 0; i < drivers.size(); i++)
+						if (drivers[i].manifest == sEdit.vulkanDriver)
+							sVulkanDriverIndex = (int)i + 1;
+					std::vector<std::string> labels = {"Automatic"};
+					for (const auto& d : drivers)
+						labels.push_back(d.name);
+					Item it = choice("Vulkan Driver", &sVulkanDriverIndex, labels,
+									 "The driver the game is rendered with. A machine can have more than one for the same card "
+									 "(the proprietary driver of AMD and RADV, for example): the loader then offers them all "
+									 "and the game takes the first one. Applied on next launch.");
+					it.restart = true;
+					p.items.push_back(it);
+				}
 				p.items.push_back(choice("Display Mode", &sEdit.displayMode, {"Windowed", "Borderless", "Fullscreen"},
 										 "Borderless: a window covering the screen, quick to switch away from. Fullscreen: the game takes the "
 										 "display for itself, which can lower input lag. Alt+Enter switches to Windowed and back."));
@@ -418,35 +449,21 @@ namespace pce::Overlay
 										 {"Linear", "Bicubic", "Bicubic Hermite", "Nearest Neighbour"},
 										 "The filter with which the picture is scaled down, when the resolution of the game is bigger "
 										 "than the window."));
-				p.items.push_back(choice("Draw Distance", &sEdit.drawDistance,
-										 {"Very Low (0.5x)", "Low (0.75x)", "Medium (1x)", "High (1.25x)", "Ultra (1.5x)", "Extreme (2x)"},
-										 "How far the characters, the enemies and the other things are drawn. A lower distance saves the "
-										 "graphics card, the things pop in when they come close."));
-				p.items.push_back(choice("Draw Distance (Terrain)", &sEdit.drawDistanceObjects,
-										 {"Low (0.75x)", "Medium (1x)", "High (1.25x)", "Ultra (1.5x)"},
-										 "How far the terrain, the buildings and the plants are drawn."));
+				p.items.push_back(toggle("V-Sync", &sEdit.vsync, "Synchronize with the display refresh rate."));
 				{
-					// the Vulkan driver: a machine can have several of them for the same card
-					const auto& drivers = Graphics::GetVulkanDrivers();
-					sVulkanDriverIndex = 0;
-					for (size_t i = 0; i < drivers.size(); i++)
-						if (drivers[i].manifest == sEdit.vulkanDriver)
-							sVulkanDriverIndex = (int)i + 1;
-					std::vector<std::string> labels = {"Automatic"};
-					for (const auto& d : drivers)
-						labels.push_back(d.name);
-					Item it = choice("Vulkan Driver", &sVulkanDriverIndex, labels,
-									 "The driver the game is rendered with. A machine can have more than one for the same card "
-									 "(the proprietary driver of AMD and RADV, for example): the loader then offers them all "
-									 "and the game takes the first one. Applied on next launch.");
-					it.restart = true;
+					// the frame generation needs the AMD FidelityFX runtime: it is not there on Linux, so the option is
+					// shown but grey (the option stays, it is not taken away)
+					Item it = choice("Frame Generation", &sEdit.frameGeneration, {"Off", "AMD FSR 3"},
+									  "AMD FSR 3: a generated frame between every two real ones. The Frame Rate limit then counts the frames "
+									  "you see: the game runs at half of it (120 FPS = 60 real + 60 generated). Adds about one game frame of "
+									  "input lag. Game logic and physics are never affected.");
+					if (!Graphics::FrameGenerationAvailable())
+					{
+						it.disabled = true;
+						it.disabledReason = "The AMD FidelityFX runtime is not installed, so there is no frame generation.";
+					}
 					p.items.push_back(it);
 				}
-				p.items.push_back(toggle("V-Sync", &sEdit.vsync, "Synchronize with the display refresh rate."));
-				p.items.push_back(choice("Frame Generation", &sEdit.frameGeneration, {"Off", "AMD FSR 3"},
-										 "AMD FSR 3: a generated frame between every two real ones. The Frame Rate limit then counts the frames "
-										 "you see: the game runs at half of it (120 FPS = 60 real + 60 generated). Adds about one game frame of "
-										 "input lag. Game logic and physics are never affected."));
 				p.items.push_back(toggle("CPU Thread Pinning", &sEdit.cpuPinning,
 										 "Experimental. Ties the emulated Wii U CPU cores and the GPU thread to fixed processor cores that share one "
 										 "cache. A small gain on some CPUs, a large loss on others (Ryzen X3D with two cache groups): leave it off "
@@ -556,6 +573,31 @@ namespace pce::Overlay
 				pages.push_back(std::move(p));
 			}
 			{
+				// the options of the community graphic packs: the page of the mods
+				Page p{"Mods"};
+				for (int i = 0; i < Graphics::kPackOptionCount; i++)
+				{
+					const auto& o = Graphics::kPackOptions[i];
+					// the options of the cheats stay on the cheats page
+					if (std::string(o.pack).find("/Cheats/") != std::string::npos)
+						continue;
+					const auto& choices = Graphics::PackPresetChoices(o.pack, o.category, o.presets);
+					if (choices.empty())
+						continue;
+					std::vector<std::string> labels;
+					int current = 0;
+					for (size_t k = 0; k < choices.size(); k++)
+					{
+						labels.push_back(choices[k].second);
+						if (choices[k].first == Graphics::PackOptionPreset(sEdit, i))
+							current = (int)k;
+					}
+					sPackOptionIndex[i] = current;
+					p.items.push_back(choice(o.label, &sPackOptionIndex[i], labels, o.help));
+				}
+				pages.push_back(std::move(p));
+			}
+			{
 				// the cheats of the graphic pack: they are the packs of the community, switched on here
 				if (sEdit.cheatsEnabled)
 				{
@@ -577,6 +619,26 @@ namespace pce::Overlay
 					p.items.push_back(choice("Durability", &sEdit.durability,
 											 {"One Hit", "x1", "x1.5", "x2", "x3", "x4", "x5", "x10", "Unbreakable"},
 											 "How fast the weapons wear out. Unbreakable never does."));
+					// the options of the cheats that are presets of a pack
+					for (int i = 0; i < Graphics::kPackOptionCount; i++)
+					{
+						const auto& o = Graphics::kPackOptions[i];
+						if (std::string(o.pack).find("/Cheats/") == std::string::npos)
+							continue;
+						const auto& choices = Graphics::PackPresetChoices(o.pack, o.category, o.presets);
+						if (choices.empty())
+							continue;
+						std::vector<std::string> labels;
+						int current = 0;
+						for (size_t k = 0; k < choices.size(); k++)
+						{
+							labels.push_back(choices[k].second);
+							if (choices[k].first == Graphics::PackOptionPreset(sEdit, i))
+								current = (int)k;
+						}
+						sPackOptionIndex[i] = current;
+						p.items.push_back(choice(o.label, &sPackOptionIndex[i], labels, o.help));
+					}
 					pages.push_back(std::move(p));
 				}
 			}
@@ -635,6 +697,13 @@ namespace pce::Overlay
 
 		void Adjust(Item& it, int dir)
 		{
+			if (it.disabled)
+			{
+				// the option is there, but it cannot be used: the reason is told once
+				if (!it.disabledReason.empty())
+					Toast(it.disabledReason);
+				return;
+			}
 			switch (it.type)
 			{
 			case ItemType::Slider:
@@ -1331,11 +1400,11 @@ namespace pce::Overlay
 					dl->AddLine(ImVec2(colLabel, y + rowH * 0.85f), ImVec2(r1.x - fs, y + rowH * 0.85f), alpha(kAccentDim), 1.0f);
 					continue;
 				}
-				const bool hover = interactive && !sRebinding && !sConfirmQuit && ImRect(r0, r1).Contains(io.MousePos) && io.MousePos.y >= listTop &&
+				const bool hover = !it.disabled && interactive && !sRebinding && !sConfirmQuit && ImRect(r0, r1).Contains(io.MousePos) && io.MousePos.y >= listTop &&
 								   io.MousePos.y <= listBottom;
 				if (hover && (io.MouseDelta.x != 0 || io.MouseDelta.y != 0 || mouseClicked))
 					sSel = i;
-				const bool sel = i == sSel && (focused || hover);
+				const bool sel = i == sSel && (focused || hover) && !it.disabled;
 				if (sel)
 				{
 					dl->AddRectFilled(r0, r1, alpha(IM_COL32(248, 200, 0, 22)));
@@ -1348,6 +1417,22 @@ namespace pce::Overlay
 					dl->AddLine(r1, ImVec2(r1.x, r1.y - tk), alpha(kAccent), 3.0f);
 				}
 				dl->AddText(sFonts.item, fs, ImVec2(colLabel, ty), alpha(sel ? kText : kTextDim, sel ? 1.0f : 0.95f), it.label.c_str());
+				if (it.disabled)
+				{
+					// the option is shown, but it cannot be used here: it is grey and it does not react
+					const std::string& v = it.type == ItemType::Choice
+											   ? it.options[std::clamp(*it.ival, 0, (int)it.options.size() - 1)]
+											   : std::string(it.type == ItemType::Toggle ? (*it.bval ? "ON" : "OFF") : "");
+					if (!v.empty())
+						TextAligned(dl, sFonts.item, fs, ImVec2(r1.x - fs * 0.6f, ty), alpha(kTextDim, 0.45f), v, 1.0f);
+					else if (it.type == ItemType::Slider)
+					{
+						char buf[64];
+						snprintf(buf, sizeof(buf), it.fmt, *it.fval);
+						TextAligned(dl, sFonts.item, fs, ImVec2(r1.x - fs * 0.6f, ty), alpha(kTextDim, 0.45f), buf, 1.0f);
+					}
+					continue;
+				}
 				switch (it.type)
 				{
 				case ItemType::Slider:

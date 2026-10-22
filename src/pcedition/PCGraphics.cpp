@@ -76,6 +76,24 @@ namespace pce::Graphics
 		}
 
 		// select the first preset of a category whose name starts with the given prefix
+		// select the preset of a category with exactly this name (the settings keep the name of the pack)
+		bool SelectPresetExact(const std::shared_ptr<GraphicPack2>& gp, const std::string& category, const std::string& name, bool* changed = nullptr)
+		{
+			for (auto& p : gp->GetPresets())
+			{
+				if (p->category != category || p->name != name)
+					continue;
+				if (gp->GetActivePreset(category) != p->name)
+				{
+					gp->SetActivePreset(category, p->name, false);
+					if (changed)
+						*changed = true;
+				}
+				return true;
+			}
+			return false;
+		}
+
 		bool SelectPreset(const std::shared_ptr<GraphicPack2>& gp, const std::string& category, const std::string& namePrefix, bool* changed = nullptr)
 		{
 			for (auto& p : gp->GetPresets())
@@ -572,16 +590,8 @@ blr
 				else
 					SelectPreset(fps, "FPS Limit", fmt::format("{}FPS Limit", limit), fpsChanged);
 			}
-			// the draw distance (the level of detail) of the graphic pack
-			if (auto dd = FindPack("BreathOfTheWild/Mods/DrawDistance"))
-			{
-				dd->SetEnabled(true);
-				static const char* kDrawDistance[] = {"Very Low (0.5x)", "Low (0.75x)", "Medium (1x)",
-													 "High (1.25x)", "Ultra (1.5x)", "Extreme (2x"};
-				static const char* kDrawDistanceObjects[] = {"Low (0.75x)", "Medium (1x)", "High (1.25x)", "Ultra (1.5x)"};
-				SelectPreset(dd, "NPC, Enemies And Other Entities", kDrawDistance[std::clamp(s.drawDistance, 0, 5)], gfxChanged);
-				SelectPreset(dd, "Terrain, Buildings, Bushes And Other Objects", kDrawDistanceObjects[std::clamp(s.drawDistanceObjects, 0, 3)], gfxChanged);
-			}
+			// the draw distance (the level of detail) of the graphic pack: it is one of the options of the packs
+			// (see kPackOptions and ApplyPackOptions)
 			// the shader filters of the graphic pack (the "Enhancements" pack of the community)
 			if (auto en = FindPack("BreathOfTheWild/Enhancements"))
 			{
@@ -638,6 +648,119 @@ blr
 			if (auto pce = FindPack("BotWPCEdition"))
 				pce->SetEnabled(true);
 		}
+	}
+
+	// the name a preset of a pack is shown with in the settings
+	std::string PresetDisplayName(const std::string& preset)
+	{
+		for (const auto& r : kPresetRenames)
+			if (preset == r.from)
+				return r.to;
+		return preset;
+	}
+
+	// The AMD FidelityFX runtime next to the program: the frame generation needs it. It is not part of the program
+	// (the AMD SDK has no build for Linux), so the option is shown but it stays grey when the library is not there.
+	bool FrameGenerationAvailable()
+	{
+		const char* name = BOOST_OS_WINDOWS ? "amd_fidelityfx_vk.dll" : "libamd_fidelityfx_vk.so";
+		std::error_code ec;
+		return fs::exists(pce::GetExeDir() / name, ec);
+	}
+
+	// The presets of a pack, with the names of the pack (the settings show the rewritten ones). When a list of presets
+	// is given, only those are offered (the packs have many more than the settings show).
+	const std::vector<std::pair<std::string, std::string>>& PackPresetChoices(const std::string& pack, const std::string& category, const char* const* presets)
+	{
+		static std::map<std::string, std::vector<std::pair<std::string, std::string>>> sCache;
+		const std::string key = pack + "|" + category + "|" + (presets ? std::to_string((uintptr_t)presets) : std::string("all"));
+		auto it = sCache.find(key);
+		if (it != sCache.end())
+			return it->second;
+		std::vector<std::pair<std::string, std::string>> names;
+		if (auto gp = FindPack(pack))
+		{
+			if (presets)
+			{
+				// the list of the settings: the order is the one of the list. The names of the pack may have more
+				// words than the ones of the list ("Ultra (1.5x)" is "Ultra (1.5x, requires ...)" in the pack).
+				for (size_t i = 0; presets[i]; i++)
+				{
+					for (const auto& p : gp->GetPresets())
+					{
+						if (p->category != category || !boost::istarts_with(p->name, presets[i]))
+							continue;
+						names.emplace_back(p->name, PresetDisplayName(p->name));
+						break;
+					}
+				}
+			}
+			else
+			{
+				for (const auto& p : gp->GetPresets())
+					if (p->category == category)
+						names.emplace_back(p->name, PresetDisplayName(p->name));
+			}
+		}
+		return sCache.emplace(key, std::move(names)).first->second;
+	}
+
+	// The preset of an option of a pack, as the settings want it. The options that existed before the pack options
+	// (the draw distance) keep their old setting until they are changed in the menu.
+	std::string PackOptionPreset(const Settings& s, int index)
+	{
+		if (index < 0 || index >= kPackOptionCount)
+			return {};
+		const std::string& v = s.packPresets[index];
+		if (!v.empty())
+			return v;
+		const PackOption& o = kPackOptions[index];
+		// the draw distance and the level of detail: the settings of before
+		if (std::string(o.pack) == "BreathOfTheWild/Mods/DrawDistance")
+		{
+			if (o.category == std::string("NPC, Enemies And Other Entities"))
+			{
+				static const char* kDrawDistance[] = {"Very Low (0.5x)", "Low (0.75x)", "Medium (1x)",
+													 "High (1.25x)", "Ultra (1.5x)", "Extreme (2x, requires Extended Memory pack!)"};
+				return kDrawDistance[std::clamp(s.drawDistance, 0, 5)];
+			}
+			if (o.category == std::string("Terrain, Buildings, Bushes And Other Objects"))
+			{
+				static const char* kDrawDistanceObjects[] = {"Low (0.75x)", "Medium (1x)", "High (1.25x)",
+													  "Ultra (1.5x, requires Extended Memory pack!)"};
+				return kDrawDistanceObjects[std::clamp(s.drawDistanceObjects, 0, 3)];
+			}
+		}
+		return {};
+	}
+
+	// Selects the presets of the community packs that the settings ask for. Returns the packs that changed.
+	std::vector<std::shared_ptr<GraphicPack2>> ApplyPackOptions(const Settings& s, bool* changed)
+	{
+		std::vector<std::shared_ptr<GraphicPack2>> touched;
+		for (int i = 0; i < kPackOptionCount; i++)
+		{
+			const PackOption& o = kPackOptions[i];
+			const std::string want = PackOptionPreset(s, i);
+			if (want.empty())
+				continue;
+			auto gp = FindPack(o.pack);
+			if (!gp)
+				continue;
+			// the pack is only used when an option of it is wanted: the mods are not switched on by themselves
+			gp->SetEnabled(true);
+			bool packChanged = false;
+			// the preset of the pack is found by its own name (the settings keep the name of the pack)
+			if (!SelectPresetExact(gp, o.category, want, &packChanged))
+				continue;
+			if (packChanged)
+			{
+				if (changed)
+					*changed = true;
+				touched.push_back(gp);
+			}
+		}
+		return touched;
 	}
 
 	int EffectiveAspect(int setting)
@@ -707,7 +830,33 @@ blr
 			std::string lib = content.substr(open + 1, close - open - 1);
 			fs::path path(lib);
 			if (path.is_relative())
+			{
+				// the loader looks for the library next to the manifest first, then in the libraries of the system
 				path = manifest.parent_path() / path;
+				std::error_code ec;
+				if (!fs::exists(path, ec))
+				{
+					static const char* kLibDirs[] = {
+						"/usr/lib",
+						"/usr/lib64",
+						"/usr/lib/x86_64-linux-gnu",
+						"/lib",
+						"/lib64",
+						"/lib/x86_64-linux-gnu",
+						"/usr/local/lib",
+						"/usr/local/lib64",
+					};
+					for (const char* dir : kLibDirs)
+					{
+						const fs::path candidate = fs::path(dir) / lib;
+						if (fs::exists(candidate, ec))
+						{
+							path = candidate;
+							break;
+						}
+					}
+				}
+			}
 			return path;
 		};
 		// a library of the other size is not loaded by the loader either
@@ -747,8 +896,14 @@ blr
 				if (content.find("\"ICD\"") == std::string::npos)
 					continue;
 				const fs::path lib = libraryOf(entry.path());
-				if (!lib.empty() && !fits(lib))
-					continue;
+				// a library that is not there is kept: the loader may find it somewhere else, and the driver is then
+				// shown with the name of its manifest
+				if (!lib.empty())
+				{
+					std::error_code ec;
+					if (fs::exists(lib, ec) && !fits(lib))
+						continue;
+				}
 				manifests.push_back(entry.path());
 			}
 		}
@@ -907,7 +1062,9 @@ blr
 
 	void ApplySettingsToPacks()
 	{
-		SetPacksFromSettings(GetSettings(), false);
+		const Settings s = GetSettings();
+		SetPacksFromSettings(s, false);
+		ApplyPackOptions(s, nullptr);
 	}
 
 	bool ApplyLive()
@@ -918,8 +1075,11 @@ blr
 		// resolution of the game)
 		GetConfig().upscale_filter = std::clamp(s.upscaleFilter, 0, 3);
 		GetConfig().downscale_filter = std::clamp(s.downscaleFilter, 0, 3);
-		bool fpsChanged = false, gfxChanged = false;
+		bool fpsChanged = false, gfxChanged = false, packChanged = false;
 		SetPacksFromSettings(s, true, &fpsChanged, &gfxChanged);
+		// the options of the community packs: they are applied to the packs, which are then reloaded, so that the
+		// change is there at once (no restart of the game)
+		auto touched = ApplyPackOptions(s, &packChanged);
 		if (CafeSystem::IsTitleRunning())
 		{
 			if (fpsChanged)
@@ -933,6 +1093,21 @@ blr
 				auto gp = FindPack("BreathOfTheWild/Graphics");
 				if (gp && gp->IsActivated() && !gp->RequiresRestart(false, true))
 					gp->Reload();
+			}
+			for (const auto& gp : touched)
+			{
+				if (!gp || !gp->IsActivated())
+					continue;
+				// The packs of the mods are reloaded even when they have texture rules (Cemu would ask for a restart):
+				// the shaders of the pack are used again at once. The textures that are already in the cache keep their
+				// old setting until the game starts again.
+				if (gp->RequiresRestart(false, true))
+				{
+					cemuLog_log(LogType::Force, "PCE: graphic pack {} reloaded (its textures change on the next start)", gp->GetNormalizedPathString());
+					gp->Reload();
+					continue;
+				}
+				gp->Reload();
 			}
 		}
 		sRestartPending = s.resolutionPreset != sAppliedAtBoot.resolutionPreset || s.shadowPreset != sAppliedAtBoot.shadowPreset ||
