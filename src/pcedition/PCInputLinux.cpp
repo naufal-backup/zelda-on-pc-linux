@@ -96,9 +96,13 @@ namespace pce::Input
 			if (code == KEY_0)
 				return (uint16)'0';
 			if (code >= KEY_Q && code <= KEY_P)
-				return (uint16)('Q' + (code - KEY_Q));
-			if (code >= KEY_A && code <= KEY_Z)
-				return (uint16)('A' + (code - KEY_A));
+				return (uint16)("QWERTYUIOP"[code - KEY_Q]);
+			// The codes of the kernel follow the QWERTY layout, not the alphabet: the row below QWERTYUIOP is
+			// ASDFGHJKL and the last row is ZXCVBNM. Mapping them as the alphabet would turn D into C (crouch).
+			if (code >= KEY_A && code <= KEY_L)
+				return (uint16)("ASDFGHJKL"[code - KEY_A]);
+			if (code >= KEY_Z && code <= KEY_M)
+				return (uint16)("ZXCVBNM"[code - KEY_Z]);
 			switch (code)
 			{
 			case KEY_ESC: return VK_ESCAPE;
