@@ -390,14 +390,21 @@ inline unsigned char _addcarry_u64(unsigned char carry, unsigned long long a, un
 
 // asserts
 
+// The assert used to break without saying anything: the crash report then named the place but not the reason. It is
+// logged now, so that the log of a crash tells which check failed.
+#define CEMU_ASSERT_STRINGIFY(x) #x
+#define CEMU_ASSERT_LINE(x) CEMU_ASSERT_STRINGIFY(x)
 
-inline void cemu_assert(bool _condition)
+#ifndef CEMU_ASSERT_QUIET
+inline void cemu_assert_failed(const char* condition, const char* file, int line)
 {
-    if ((_condition) == false)
-    {
-        DEBUG_BREAK;
-    }
+    cemuLog_log(LogType::Force, "Assertion failed: {} ({}, line {})", condition, file, line);
+    DEBUG_BREAK;
 }
+#endif
+
+#define cemu_assert(cond) \
+    do { if (!(cond)) cemu_assert_failed(#cond, __FILE__, __LINE__); } while (0)
 
 #ifndef CEMU_DEBUG_ASSERT
 //#define cemu_assert_debug(__cond) -> Forcing __cond not to be evaluated currently has unexpected side-effects
