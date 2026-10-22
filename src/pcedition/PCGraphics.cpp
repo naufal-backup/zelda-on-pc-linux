@@ -8,6 +8,7 @@
 #include <cstring>
 #include <cctype>
 #include <cstdlib>
+#include <algorithm>
 #include <boost/algorithm/string.hpp>
 
 #include "config/ActiveSettings.h"
@@ -691,7 +692,44 @@ blr
 		if (sRead)
 			return sDrivers;
 		sRead = true;
+		// the driver of a manifest: the library it loads, if it is there and of the right size
+		auto libraryOf = [](const fs::path& manifest) -> fs::path {
+			std::ifstream f(manifest);
+			const std::string content((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+			const size_t pos = content.find("\"library_path\"");
+			if (pos == std::string::npos)
+				return {};
+			const size_t start = content.find(':', pos);
+			const size_t open = content.find('"', start);
+			const size_t close = content.find('"', open + 1);
+			if (open == std::string::npos || close == std::string::npos)
+				return {};
+			std::string lib = content.substr(open + 1, close - open - 1);
+			fs::path path(lib);
+			if (path.is_relative())
+				path = manifest.parent_path() / path;
+			return path;
+		};
+		// a library of the other size is not loaded by the loader either
+		auto fits = [](const fs::path& lib) {
+			std::error_code ec;
+			if (!fs::exists(lib, ec))
+				return false;
+			std::ifstream f(lib, std::ios::binary);
+			char head[5] = {};
+			if (!f.read(head, 5))
+				return false;
+			if (head[0] != 0x7F || head[1] != 'E' || head[2] != 'L' || head[3] != 'F')
+				return true; // not an ELF (a Windows DLL): the loader of this system will not load it
+			const bool is64 = head[4] == 2;
+#if BOOST_OS_WINDOWS
+			return true;
+#else
+			return is64 == (sizeof(void*) == 8);
+#endif
+		};
 		static const char* kDirs[] = {"/usr/share/vulkan/icd.d", "/etc/vulkan/icd.d", "/usr/local/share/vulkan/icd.d"};
+		std::vector<fs::path> manifests;
 		for (const char* dir : kDirs)
 		{
 			std::error_code ec;
@@ -708,13 +746,29 @@ blr
 				const std::string content((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
 				if (content.find("\"ICD\"") == std::string::npos)
 					continue;
-				const std::string name = VulkanDriverName(entry.path());
-				bool known = false;
-				for (const auto& d : sDrivers)
-					known = known || d.name == name;
-				if (!known)
-					sDrivers.push_back({entry.path().string(), name});
+				const fs::path lib = libraryOf(entry.path());
+				if (!lib.empty() && !fits(lib))
+					continue;
+				manifests.push_back(entry.path());
 			}
+		}
+		std::sort(manifests.begin(), manifests.end());
+		for (const auto& manifest : manifests)
+		{
+			const std::string name = VulkanDriverName(manifest);
+			// the manifest of the size of the program comes first (a machine can have both)
+			const std::string suffix = sizeof(void*) == 8 ? "_icd64" : "_icd32";
+			bool known = false;
+			for (auto& d : sDrivers)
+			{
+				if (d.name != name)
+					continue;
+				known = true;
+				if (d.manifest.find(suffix) == std::string::npos && manifest.string().find(suffix) != std::string::npos)
+					d.manifest = manifest.string();
+			}
+			if (!known)
+				sDrivers.push_back({manifest.string(), name});
 		}
 		return sDrivers;
 	}
