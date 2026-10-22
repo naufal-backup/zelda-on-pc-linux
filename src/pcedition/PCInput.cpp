@@ -1352,7 +1352,9 @@ namespace pce::Input
 				ClearKeyPresses();
 			sPanelHover = false;
 		}
-		UI::SetBoxCursorHidden(sEmbedFocus.load() && ui.systemPanel);
+		// The cursor of the game (the hand in the weapon / rune selector) is hidden while the PC settings are in its
+		// place and while the selector is open: the mouse aims the camera there, like in the scope.
+		UI::SetBoxCursorHidden((sEmbedFocus.load() && ui.systemPanel) || (ui.shortcut && !ui.inventory && !ui.map));
 		Menus::FrameIO mio;
 		mio.frame = frameNo;
 		mio.focused = inputEnabled;
