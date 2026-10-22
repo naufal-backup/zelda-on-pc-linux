@@ -86,6 +86,16 @@ jobs:
       - name: Build
         run: cmake --build build/release -- -k 0
 
+      - name: Check the Clarity effect (ReShade) compiles
+        # The Clarity preset shader is written as a ReShade effect (.fx). The ReShade effect compiler is built
+        # here and the effect is turned into the GLSL the Vulkan renderer uses. The result is committed, so an
+        # ordinary build does not need this step; it runs to catch a broken effect before it is committed.
+        run: |
+          python3 -m pip install --quiet glad jinja2
+          bash tools/build_clarity_shader.sh
+          git diff --exit-code -- src/pcedition/reshade/Clarity.fx.glsl \
+            || echo "::warning::Clarity.fx.glsl is out of date, run tools/build_clarity_shader.sh"
+
       - name: Build the AMD FidelityFX runtime
         # The FSR 3 frame generation and the upscaler are in the runtime of AMD (the loader looks for it next to the
         # executable). The SDK has no build for Linux, so it is built here from the sources in the repository - the
