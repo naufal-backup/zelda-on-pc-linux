@@ -5,7 +5,7 @@
 #include <string>
 
 #include "Cafe/HW/Latte/Renderer/Vulkan/RendererShaderVk.h"
-#include "util/logging.h"
+#include "Cemu/Logging/CemuLogging.h"
 
 std::vector<uint32> RendererShaderVk_CompileCompute(const std::string& source, std::string& errorOut); // RendererShaderVk.cpp
 
