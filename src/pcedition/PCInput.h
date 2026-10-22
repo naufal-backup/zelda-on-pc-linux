@@ -31,6 +31,8 @@ namespace pce
 
 		// key state queries (for overlay)
 		bool IsKeyDown(Key k);
+		// the window of the game has the focus (the raw input is only used then)
+		bool HasFocus();
 		// returns the next key/button press since the last call (for rebinding & overlay navigation)
 		std::optional<Key> PopKeyPress();
 		void ClearKeyPresses();

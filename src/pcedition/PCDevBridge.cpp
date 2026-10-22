@@ -501,9 +501,38 @@ namespace pce::DevBridge
 						guiLeft = instance.m_main_mouse.left_down;
 						guiRight = instance.m_main_mouse.right_down;
 					}
-					return fmt::format("gui pos=({},{}) left={} right={} | pce left={} right={}",
+					return fmt::format("gui pos=({},{}) left={} right={} | pce left={} right={} | focus={} overlay={}",
 						pos.x, pos.y, (int)guiLeft, (int)guiRight,
-						(int)Input::IsKeyDown(Key::MouseLeft), (int)Input::IsKeyDown(Key::MouseRight));
+						(int)Input::IsKeyDown(Key::MouseLeft), (int)Input::IsKeyDown(Key::MouseRight),
+						(int)Input::HasFocus(), (int)Input::IsOverlayOpen());
+				}
+				if (c == "mousemon")
+				{
+					// mousemon <ms>: watch the state of the mouse buttons for a while and report every change
+					// (the state of the GUI layer and the one of the PC edition layer)
+					const int ms = a.size() > 1 ? (int)u(1) : 3000;
+					auto& instance = InputManager::instance();
+					bool lastGui = false, lastPce = false;
+					const auto t0 = std::chrono::steady_clock::now();
+					std::string r;
+					while (std::chrono::steady_clock::now() - t0 < std::chrono::milliseconds(ms))
+					{
+						bool gui = false;
+						{
+							std::shared_lock lock(instance.m_main_mouse.m_mutex);
+							gui = instance.m_main_mouse.left_down;
+						}
+						const bool pce = Input::IsKeyDown(Key::MouseLeft);
+						if (gui != lastGui || pce != lastPce)
+						{
+							r += fmt::format("[{}ms gui={} pce={} focus={}] ", (int)std::chrono::duration_cast<std::chrono::milliseconds>(
+									std::chrono::steady_clock::now() - t0).count(), (int)gui, (int)pce, (int)Input::HasFocus());
+							lastGui = gui;
+							lastPce = pce;
+						}
+						std::this_thread::sleep_for(std::chrono::milliseconds(2));
+					}
+					return r.empty() ? "no change" : r;
 				}
 				if (c == "barriers" && a.size() > 1)
 				{

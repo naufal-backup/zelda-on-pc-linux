@@ -1051,6 +1051,11 @@ namespace pce::Input
 		return KeyDownNow(k);
 	}
 
+	bool HasFocus()
+	{
+		return sFocused.load();
+	}
+
 	std::optional<Key> PopKeyPress()
 	{
 		std::lock_guard lock(sPressMutex);
