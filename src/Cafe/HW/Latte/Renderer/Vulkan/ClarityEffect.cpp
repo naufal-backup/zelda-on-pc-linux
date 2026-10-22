@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "Cafe/HW/Latte/Renderer/RendererOuputShader.h"
+#include "Cafe/HW/Latte/Renderer/Vulkan/RendererShaderVk.h"
 #include "Cemu/Logging/CemuLogging.h"
 #include "pcedition/reshade/ClarityUniforms.h"
 #include "pcedition/reshade/Clarity.fx.glsl.h"
@@ -25,9 +26,10 @@ namespace pce::Reshade
 		{
 		public:
 			ClarityOutputShader(const std::vector<uint8>& presetValues)
+				// The base class adds the standard preamble (version, textureSrc, blok parameters). The fields
+				// of the Clarity presets go inside that block, so they come first, then the shader body.
 				: RendererOutputShader(RendererOutputShader::GetVulkanVertexSource(false),
-									   RendererOutputShader::PrependFragmentPreamble(
-										   std::string(kClarityUniformFields) + "\n" + std::string(kClarityFragmentBody))),
+									   std::string(kClarityUniformFields) + "\n" + std::string(kClarityFragmentBody)),
 				  m_presetValues(presetValues)
 			{
 			}
@@ -126,7 +128,17 @@ namespace pce::Reshade
 		try
 		{
 			const std::vector<uint8>& values = GetUniformData(preset);
-			entry.shader = std::make_unique<ClarityOutputShader>(values);
+			auto shader = std::make_unique<ClarityOutputShader>(values);
+			// A shader that does not compile leaves the game with a black screen (nothing is drawn at all),
+			// so it is checked here and the usual output shader is kept if it is broken.
+			auto* fragment = static_cast<RendererShaderVk*>(shader->GetFragmentShader());
+			if (!fragment || fragment->GetShaderModule() == VK_NULL_HANDLE)
+			{
+				cemuLog_log(LogType::Force, "Clarity: preset {} tidak bisa dikompilasi, memakai shader biasa", preset);
+				entry.failed = true;
+				return nullptr;
+			}
+			entry.shader = std::move(shader);
 		}
 		catch (const std::exception& e)
 		{

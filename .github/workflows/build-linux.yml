@@ -96,6 +96,13 @@ jobs:
           git diff --exit-code -- src/pcedition/reshade/Clarity.fx.glsl \
             || echo "::warning::Clarity.fx.glsl is out of date, run tools/build_clarity_shader.sh"
 
+      - name: Check the Clarity shader compiles as the renderer builds it
+        # A broken shader only shows at run time, as a black screen after the loading screen (the game
+        # draws nothing when the output shader fails), so it is compiled here the same way.
+        run: |
+          sudo apt-get install -y --no-install-recommends glslang-tools
+          python3 tools/check_clarity_shader.py
+
       - name: Build the AMD FidelityFX runtime
         # The FSR 3 frame generation and the upscaler are in the runtime of AMD (the loader looks for it next to the
         # executable). The SDK has no build for Linux, so it is built here from the sources in the repository - the
