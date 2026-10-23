@@ -534,9 +534,9 @@ blr
 0x02CB7004 = bla _pceGlideTick
 0x02FF64CC = bla _pceSlideSnap
 )";
-		}
+	}
 
-		// The presets of a pack, with the names of the pack (the settings show the rewritten ones). When a list of presets
+	// The presets of a pack, with the names of the pack (the settings show the rewritten ones). When a list of presets
 	// is given, only those are offered (the packs have many more than the settings show).
 	const std::vector<std::pair<std::string, std::string>>& PackPresetChoices(const std::string& pack, const std::string& category, const char* const* presets)
 	{
@@ -983,6 +983,120 @@ blr
 		Prompts::Prepare(pce);
 		Prompts::PrepareTips(pce);
 		sAppliedAtBoot = GetSettings();
+	}
+
+	void SetPacksFromSettings(const Settings& s, bool live, bool* fpsChanged = nullptr, bool* gfxChanged = nullptr)
+	{
+		// resolution, shadows, anti-aliasing
+		if (auto gfx = FindPack("BreathOfTheWild/Graphics"))
+		{
+			gfx->SetEnabled(true);
+			const int aspect = EffectiveAspect(s.aspectRatio);
+			const auto& res = GetResolutionOptions(aspect);
+			const int ri = std::clamp(s.resolutionPreset, 0, (int)res.size() - 1);
+			if (!live)
+			{
+				static const char* kAspect[] = {"16:9", "16:9", "16:10", "21:9", "32:9"};
+				SelectPreset(gfx, "Aspect Ratio", kAspect[aspect], gfxChanged);
+				SelectPreset(gfx, "Resolution", fmt::format("{}x{}", res[ri].width, res[ri].height), gfxChanged);
+				if (s.fsrUpscaler > 0)
+				if (aspect >= 3)
+					SelectPreset(gfx, "Ultrawide HUD Mode", s.ultrawideHud == 1 ? "Centered HUD" : "Edge HUD", gfxChanged);
+				cemuLog_log(LogType::Force, "PCE: aspect ratio {} (setting {}), resolution {}x{}", kAspect[aspect], s.aspectRatio, res[ri].width, res[ri].height);
+				static const char* kShadow[] = {"Low", "Medium", "High", "Ultra"};
+				SelectPreset(gfx, "Shadows", kShadow[std::clamp(s.shadowPreset, 0, 3)], gfxChanged);
+				static const char* kShadowDist[] = {"Medium", "High", "Very High", "Ultra"};
+				SelectPreset(gfx, "Shadow Draw Distance", kShadowDist[std::clamp(s.shadowPreset, 0, 3)], gfxChanged);
+			}
+			static const char* kAA[] = {"None", "Normal FXAA", "NVIDIA FXAA"};
+			SelectPreset(gfx, "Anti-Aliasing", kAA[std::clamp(s.antiAliasing, 0, 2)], gfxChanged);
+		}
+		// FPS++: full dynamic game speed (physics corrected), user chosen limit
+		if (auto fps = FindPack("BreathOfTheWild/Mods/FPS++"))
+		{
+			fps->SetEnabled(true);
+			SelectPreset(fps, "Fence Type", "Performance Fence", fpsChanged);
+			// the cutscenes have their own frame rate limit: only the few that need it, all of them at 60 or 30 FPS,
+			// or none (the last one crashes above 30-60 FPS)
+			static const char* kCutsceneFps[] = {"Automatically Limit", "Limit all cutscenes to 60FPS",
+												  "Limit all cutscenes to 30FPS", "Disabled"};
+			SelectPreset(fps, "Cutscene FPS Limit", kCutsceneFps[std::clamp(s.cutsceneFps, 0, 3)], fpsChanged);
+			SelectPreset(fps, "Frame Average", "8 Frames", fpsChanged);
+			SelectPreset(fps, "Static Mode", "Disabled", fpsChanged);
+			SelectPreset(fps, "Debug Options", "Disabled", fpsChanged);
+			// The mod has two sets of presets: the normal mode has 20 to 240 in the usual steps, the advanced mode
+			// has more (33, 40, 48, 244). The mode is switched to the one that has the value that is wanted.
+			// with frame generation the limit counts the frames shown: the game runs at half of it (steady pacing too)
+			static const int kLimits[] = {20, 30, 33, 40, 45, 48, 55, 60, 72, 75, 90, 120, 144, 165, 240, 244};
+			const int target = s.frameGeneration == 1 ? s.fpsLimit / 2 : s.fpsLimit;
+			int limit = kLimits[0];
+			for (int v : kLimits)
+				if (target >= v)
+					limit = v;
+			const bool advanced = limit == 33 || limit == 40 || limit == 48 || limit == 244;
+			SelectPreset(fps, "Mode", advanced ? "Advanced Settings" : "Normal Settings", fpsChanged);
+			if (advanced)
+				SelectPreset(fps, "Framerate Limit", fmt::format("{}FPS (", limit), fpsChanged);
+			else
+				SelectPreset(fps, "FPS Limit", fmt::format("{}FPS Limit", limit), fpsChanged);
+		}
+		// the draw distance (the level of detail) of the graphic pack: it is one of the options of the packs
+		// (see kPackOptions and ApplyPackOptions)
+		// the shader filters of the graphic pack (the "Enhancements" pack of the community)
+		if (auto en = FindPack("BreathOfTheWild/Enhancements"))
+		{
+			en->SetEnabled(true);
+			SelectPreset(en, "Clarity", kClarityPresets[std::clamp(s.clarity, 0, (int)std::size(kClarityPresets) - 1)], gfxChanged);
+			SelectPreset(en, "Depth Of Field", s.depthOfField ? "Enabled" : "Disabled", gfxChanged);
+			SelectPreset(en, "Reflections", s.reflections ? "Enhanced Reflections" : "Normal Reflections", gfxChanged);
+			SelectPreset(en, "Reflection Range", kReflectionRangePresets[std::clamp(s.reflectionRange, 0, (int)std::size(kReflectionRangePresets) - 1)], gfxChanged);
+			SelectPreset(en, "Anisotropic Filtering", kAnisotropyPresets[std::clamp(s.anisotropy, 0, (int)std::size(kAnisotropyPresets) - 1)], gfxChanged);
+		}
+		// the cheats of the graphic pack
+		if (auto ch = FindPack("BreathOfTheWild/Cheats/ArrowDrawSpeed"))
+		{
+			ch->SetEnabled(true);
+			static const char* kDrawSpeed[] = {"Disable Bow", "0.5x", "0.75x", "1x (Default)", "1.5x",
+											  "2x", "3x", "10x", "20x", "40x"};
+			SelectPreset(ch, "Draw Speed", kDrawSpeed[std::clamp(s.arrowDrawSpeed, 0, 9)], gfxChanged);
+		}
+		if (auto du = FindPack("BreathOfTheWild/Cheats/Durability"))
+		{
+			du->SetEnabled(true);
+			static const char* kDurability[] = {"One Hit", "x1 (Default)", "x1.5", "x2", "x3", "x4", "x5", "x10", "Unbreakable"};
+			SelectPreset(du, "Durability Modifier", kDurability[std::clamp(s.durability, 0, 8)], gfxChanged);
+		}
+		if (auto mm = FindPack("BreathOfTheWild/Cheats/MasterModeOptions"))
+		{
+			mm->SetEnabled(true);
+			// every option is a pair of presets: the first one is the default, the bit of the mask says which one
+			static const char* kMasterMode[][2] = {
+				{"Disabled (Default)", "Enabled (shows broken options)"},        // show the debug options
+				{"Disabled (Default)", "Enabled"},                              // 1-hit-kill protection
+				{"Enabled (Default)", "Disabled"},                              // no Ganon stun lock
+				{"Enabled (Default)", "Disabled"},                              // randomized guardian fire timing
+				{"Enabled (Default)", "Disabled"},                              // shorter enemy notice
+				{"Enabled (Default)", "Disabled"},                              // is last play hard mode
+				{"Disabled (Default)", "Enabled"},                              // nerf cooking
+			};
+			for (size_t i = 0; i < std::size(kMasterMode); i++)
+				SelectPreset(mm, MasterModeCategory(i), kMasterMode[i][(s.masterModeMask >> i) & 1], gfxChanged);
+		}
+		// the cheat packs that are simply switched on or off
+		static const char* kCheatPacks[] = {
+			"BreathOfTheWild/Cheats/InfiniteAmiibo", "BreathOfTheWild/Cheats/InfiniteArrows",
+			"BreathOfTheWild/Cheats/InfiniteDaruk", "BreathOfTheWild/Cheats/InfiniteHearts",
+			"BreathOfTheWild/Cheats/InfiniteMipha", "BreathOfTheWild/Chearts/InfiniteMotorcycleEnergy",
+			"BreathOfTheWild/Cheats/InfiniteRevali", "BreathOfTheWild/Chearts/InfiniteStamina",
+			"BreathOfTheWild/Cheats/InfiniteUrbosa", "BreathOfTheWild/Cheats/9999StampsLimit",
+		};
+		for (size_t i = 0; i < std::size(kCheatPacks); i++)
+		{
+			if (auto cp = FindPack(kCheatPacks[i]))
+				cp->SetEnabled((s.cheatMask >> i) & 1);
+		}
+		if (auto pce = FindPack("BotWPCEdition"))
+			pce->SetEnabled(true);
 	}
 
 	void ApplySettingsToPacks()
