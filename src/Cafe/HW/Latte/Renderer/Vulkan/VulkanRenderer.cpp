@@ -1,5 +1,6 @@
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanRenderer.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanFSR1.h"
+#include "pcedition/PCEdition.h"
 #include "pcedition/PCSettings.h"
 #include "pcedition/PCGraphics.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanFSR.h"

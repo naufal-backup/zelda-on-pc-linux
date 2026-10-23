@@ -16,6 +16,7 @@
 #include <cstring>
 #include <string>
 
+#include "Cafe/HW/Latte/Renderer/Vulkan/VulkanAPI.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/RendererShaderVk.h"
 #include "Cemu/Logging/CemuLogging.h"
 
