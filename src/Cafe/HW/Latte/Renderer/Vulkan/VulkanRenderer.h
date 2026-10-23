@@ -288,6 +288,7 @@ public:
 	void DrawBackbufferQuad(LatteTextureView* texView, RendererOutputShader* shader, bool useLinearTexFilter, sint32 imageX, sint32 imageY, sint32 imageWidth, sint32 imageHeight, bool padView, bool clearBackground) override;
 	void CreateDescriptorPool();
 	VkDescriptorSet backbufferBlit_createDescriptorSet(VkDescriptorSetLayout descriptor_set_layout, LatteTextureViewVk* texViewVk, bool useLinearTexFilter);
+	VkDescriptorSet backbufferBlit_createDescriptorSetForView(VkDescriptorSetLayout descriptor_set_layout, VkImageView view, bool useLinearTexFilter);
 
 	robin_hood::unordered_flat_map<uint64, robin_hood::unordered_flat_map<uint64, PipelineInfo*> > m_pipeline_info_cache; // using robin_hood::unordered_flat_map is twice as fast (1-2% overall CPU time reduction)
 	void draw_debugPipelineHashState();
@@ -518,6 +519,10 @@ private:
 	void SwapBuffer(bool mainWindow);
 
 	VkDescriptorSetLayout m_swapchainDescriptorSetLayout;
+
+	// AMD FSR 1.0 (EASU + RCAS): dibuat saat preset FSR dipakai, dan sampler untuk blit hasilnya
+	std::unique_ptr<class VulkanFSR1> m_fsr1;
+	VkSampler m_fsrBlitSampler = VK_NULL_HANDLE;
 
 	VkQueue m_graphicsQueue, m_presentQueue;
 

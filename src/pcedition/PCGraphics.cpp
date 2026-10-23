@@ -550,6 +550,9 @@ blr
 					static const char* kAspect[] = {"16:9", "16:9", "16:10", "21:9", "32:9"};
 					SelectPreset(gfx, "Aspect Ratio", kAspect[aspect], gfxChanged);
 					SelectPreset(gfx, "Resolution", fmt::format("{}x{}", res[ri].width, res[ri].height), gfxChanged);
+					// AMD FSR 1.0: the picture of the game is drawn smaller, the graphics card makes it bigger
+					if (s.fsrUpscaler > 0)
+						SelectFsrResolution(gfx, std::clamp(s.fsrUpscaler, 0, (int)GetFsrModes().size() - 1), gfxChanged);
 					if (aspect >= 3)
 						SelectPreset(gfx, "Ultrawide HUD Mode", s.ultrawideHud == 1 ? "Centered HUD" : "Edge HUD", gfxChanged);
 					cemuLog_log(LogType::Force, "PCE: aspect ratio {} (setting {}), resolution {}x{}", kAspect[aspect], s.aspectRatio, res[ri].width, res[ri].height);
@@ -666,6 +669,119 @@ blr
 		const char* name = BOOST_OS_WINDOWS ? "amd_fidelityfx_vk.dll" : "libamd_fidelityfx_vk.so";
 		std::error_code ec;
 		return fs::exists(pce::GetExeDir() / name, ec);
+	}
+
+	// ---- AMD FSR 1.0 ----
+	const std::vector<FsrMode>& GetFsrModes()
+	{
+		// The ratios of the four modes of FSR 1.0 (Quality 1.5x ... Ultra Performance 3.0x)
+		static const std::vector<FsrMode> s_modes = {
+			{"Off", 1.0f},
+			{"Quality (1.5x)", 1.5f},
+			{"Balanced (1.7x)", 1.7f},
+			{"Performance (2.0x)", 2.0f},
+			{"Ultra Performance (3.0x)", 3.0f},
+		};
+		return s_modes;
+	}
+
+	bool FsrAvailable()
+	{
+		// FSR 1.0 is implemented in the renderer itself (compute shaders), so it only needs Vulkan.
+		// On the renderers without it (OpenGL, Metal) the option does nothing and stays off.
+		const auto api = GetConfig().graphic_api;
+		return api == GraphicAPI::Vulkan;
+	}
+
+	FsrRenderSettings FsrSettings()
+	{
+		const Settings s = GetSettings();
+		FsrRenderSettings r;
+		r.mode = std::clamp(s.fsrUpscaler, 0, (int)GetFsrModes().size() - 1);
+		// 0 in the settings is the sharpest, 10 the softest; RCAS takes the number of stops
+		r.sharpness = std::clamp(s.fsrSharpness * 0.4f, 0.0f, 4.0f);
+		// the quick modes already come from a half resolution picture: sharpening them too would only add noise
+		r.sharpen = r.mode <= 2;
+		return r;
+	}
+
+	bool FsrEnabled()
+	{
+		const Settings s = GetSettings();
+		return s.fsrUpscaler > 0 && FsrAvailable();
+	}
+
+	// The size of the picture of the game for a FSR mode: the resolution of the window divided by the
+	// ratio, rounded to a multiple of 8 (the shaders of the game work better with those).
+	static bool FsrInternalSize(int mode, int& outWidth, int& outHeight)
+	{
+		if (mode <= 0 || mode >= (int)GetFsrModes().size())
+			return false;
+		const auto& res = GetResolutionOptions(GetSettings().aspectRatio);
+		const int index = std::clamp(GetSettings().resolutionPreset, 0, (int)res.size() - 1);
+		const int w = res[index].width, h = res[index].height;
+		const float ratio = GetFsrModes()[mode].ratio;
+		outWidth = std::max(8, ((int)std::lround(w / ratio) + 7) / 8 * 8);
+		outHeight = std::max(8, ((int)std::lround(h / ratio) + 7) / 8 * 8);
+		return true;
+	}
+
+	// The Graphics pack is where the size of the picture of the game is chosen, so the sizes of the FSR
+	// modes are added to it as extra resolution presets (once, at startup).
+	static std::string FsrPresetName(int w, int h, int mode)
+	{
+		return fmt::format("{}x{} (FSR {})", w, h, GetFsrModes()[mode].label);
+	}
+
+	static void AddFsrResolutions()
+	{
+		const fs::path rules = PacksDir() / "BreathOfTheWild" / "Graphics" / "rules.txt";
+		std::error_code ec;
+		if (!fs::exists(rules, ec))
+			return;
+
+		std::ifstream in(rules, std::ios::binary);
+		if (!in)
+			return;
+		std::string text((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+		in.close();
+
+		// remove the sizes of an earlier start, then add them again (the screen can have another size now)
+		const size_t start = text.find("\n[Preset]\nname = ");
+		if (start != std::string::npos && text.find("(FSR ", start) != std::string::npos)
+		{
+			const size_t firstFsr = text.find("[Preset]", text.find("(FSR ", start) - 400);
+			if (firstFsr != std::string::npos && firstFsr > start)
+				text.resize(text.rfind('\n', firstFsr) == std::string::npos ? firstFsr : text.rfind('\n', firstFsr));
+		}
+
+		std::string add;
+		for (int mode = 1; mode < (int)GetFsrModes().size(); mode++)
+		{
+			int w = 0, h = 0;
+			if (!FsrInternalSize(mode, w, h))
+				continue;
+			// every Resolution preset sets the same two variables, so these are valid presets
+			add += fmt::format("\n[Preset]\nname = {}\ncategory = Resolution\n$width:int = {}\n$height:int = {}\n",
+							   FsrPresetName(w, h, mode), w, h);
+		}
+		if (add.empty())
+			return;
+
+		std::ofstream out(rules, std::ios::binary | std::ios::trunc);
+		if (!out)
+			return;
+		out << text << add;
+	}
+
+	// Select the size of the picture of the game for the FSR mode (exact name, the sizes of two modes can
+	// be the same on small screens).
+	static void SelectFsrResolution(GraphicPack2* gfx, int mode, bool& changed)
+	{
+		int w = 0, h = 0;
+		if (!FsrInternalSize(mode, w, h))
+			return;
+		SelectPresetExact(gfx, "Resolution", FsrPresetName(w, h, mode), changed);
 	}
 
 	// The presets of a pack, with the names of the pack (the settings show the rewritten ones). When a list of presets
@@ -1053,6 +1169,9 @@ blr
 		rules.close();
 		// remove leftovers from older builds
 		fs::remove(pce / "patch_dev.asm", ec);
+
+		// the sizes of the FSR modes belong to the Graphics pack (they are choices of its resolution)
+		AddFsrResolutions();
 		WriteCameraPatch(pce / "patch_PCCamera.asm");
 		// keyboard & mouse button prompts (font archive + resource size table in the pack's content folder)
 		Prompts::Prepare(pce);

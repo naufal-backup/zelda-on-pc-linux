@@ -233,6 +233,7 @@ namespace pce::Overlay
 			                        old.antiAliasing != copy.antiAliasing || old.resolutionPreset != copy.resolutionPreset ||
 			                        old.shadowPreset != copy.shadowPreset || old.aspectRatio != copy.aspectRatio ||
 			                        old.ultrawideHud != copy.ultrawideHud || old.frameGeneration != copy.frameGeneration ||
+			                        old.fsrUpscaler != copy.fsrUpscaler || old.fsrSharpness != copy.fsrSharpness ||
 			                        old.cutsceneFps != copy.cutsceneFps || old.upscaleFilter != copy.upscaleFilter ||
 			                        old.downscaleFilter != copy.downscaleFilter || old.drawDistance != copy.drawDistance ||
 			                        old.drawDistanceObjects != copy.drawDistanceObjects || old.cheatMask != copy.cheatMask ||
@@ -463,6 +464,26 @@ namespace pce::Overlay
 						it.disabledReason = "The AMD FidelityFX runtime is not installed, so there is no frame generation.";
 					}
 					p.items.push_back(it);
+				}
+				{
+					// AMD FSR 1.0: the game draws its picture smaller, the graphics card makes it bigger again
+					std::vector<std::string> labels;
+					for (const auto& m : Graphics::GetFsrModes())
+						labels.emplace_back(m.label);
+					Item it = choice("FSR 1.0 Upscaler", &sEdit.fsrUpscaler, labels,
+									 "The game draws its picture smaller and the graphics card makes it bigger again with EASU, which "
+									 "keeps more detail than plain scaling; the result is then sharpened with RCAS. Quality (1.5x) is the "
+									 "best looking, Ultra Performance (3x) the fastest. Takes effect when the game starts.");
+					if (!Graphics::FsrAvailable())
+					{
+						it.disabled = true;
+						it.disabledReason = "FSR 1.0 needs the Vulkan renderer.";
+					}
+					p.items.push_back(it);
+					p.items.push_back(slider("FSR 1.0 Sharpness", &sEdit.fsrSharpness, 0.0f, 10.0f, 1.0f, "%.0f",
+											 "How much RCAS sharpens the picture that was made bigger (0 the sharpest, 10 the "
+											 "softest). The quick modes (Performance, Ultra Performance) do not sharpen: their "
+											 "picture is already made from a smaller one."));
 				}
 				p.items.push_back(toggle("CPU Thread Pinning", &sEdit.cpuPinning,
 										 "Experimental. Ties the emulated Wii U CPU cores and the GPU thread to fixed processor cores that share one "
