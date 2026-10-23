@@ -519,9 +519,6 @@ private:
 
 	VkDescriptorSetLayout m_swapchainDescriptorSetLayout;
 
-	// AMD FSR 1.0 RCAS (penajaman): dibuat saat dipakai, dan sampler untuk blit hasilnya
-	std::unique_ptr<class VulkanFSRSharpen> m_fsrSharpen;
-	VkSampler m_fsrBlitSampler = VK_NULL_HANDLE;
 
 
 	VkQueue m_graphicsQueue, m_presentQueue;

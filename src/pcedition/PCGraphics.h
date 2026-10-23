@@ -190,16 +190,6 @@ namespace pce::Graphics
 	// whether the AMD FidelityFX runtime is there: the frame generation needs it
 	bool FrameGenerationAvailable();
 
-	// ---- AMD FSR 1.0 RCAS: penajaman setelah penskalaan ----
-	// This is RCAS from FSR 1.0 (the sharpening half). It runs as a post process pass on the picture, so
-	// changing it takes effect at once. The upscaling half (EASU) is not used: it would need the game to
-	// draw its picture in a smaller resolution, which cannot be changed while the game runs.
-	struct FsrRenderSettings
-	{
-		float sharpness = 5.0f;   // 0 (the sharpest) .. 10 (off)
-		bool sharpen = false;
-	};
-	FsrRenderSettings FsrSettings();
 	// A Vulkan driver (the ICD manifests the loader reads). A machine can have several of them for the same card
 	// (the proprietary driver of AMD and RADV, for example), and then the loader offers both.
 	struct VulkanDriver

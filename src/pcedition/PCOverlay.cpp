@@ -233,7 +233,6 @@ namespace pce::Overlay
 			                        old.antiAliasing != copy.antiAliasing || old.resolutionPreset != copy.resolutionPreset ||
 			                        old.shadowPreset != copy.shadowPreset || old.aspectRatio != copy.aspectRatio ||
 			                        old.ultrawideHud != copy.ultrawideHud || old.frameGeneration != copy.frameGeneration ||
-			                        old.fsrSharpness != copy.fsrSharpness ||
 			                        old.cutsceneFps != copy.cutsceneFps || old.upscaleFilter != copy.upscaleFilter ||
 			                        old.downscaleFilter != copy.downscaleFilter || old.drawDistance != copy.drawDistance ||
 			                        old.drawDistanceObjects != copy.drawDistanceObjects || old.cheatMask != copy.cheatMask ||
@@ -465,12 +464,6 @@ namespace pce::Overlay
 					}
 					p.items.push_back(it);
 				}
-				// AMD FSR 1.0 RCAS: sharpening of the picture after it was scaled. It runs as its own pass, so a
-				// change is there at once. The upscaling half (EASU) is not offered: it needs the game to draw its
-				// picture in a smaller resolution, which cannot be changed while the game runs.
-				p.items.push_back(slider("FSR Sharpening", &sEdit.fsrSharpness, 0.0f, 10.0f, 1.0f, "%.0f",
-										 "Sharpens the picture after it is scaled to the window (RCAS from AMD FSR 1.0). 0 is "
-										 "the sharpest, 10 turns it off. It is applied at once, no restart needed."));
 				p.items.push_back(toggle("CPU Thread Pinning", &sEdit.cpuPinning,
 										 "Experimental. Ties the emulated Wii U CPU cores and the GPU thread to fixed processor cores that share one "
 										 "cache. A small gain on some CPUs, a large loss on others (Ryzen X3D with two cache groups): leave it off "

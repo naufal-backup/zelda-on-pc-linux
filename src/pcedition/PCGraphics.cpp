@@ -668,17 +668,6 @@ blr
 		return fs::exists(pce::GetExeDir() / name, ec);
 	}
 
-	// ---- AMD FSR 1.0 RCAS (penajaman) ----
-	FsrRenderSettings FsrSettings()
-	{
-		const Settings s = GetSettings();
-		FsrRenderSettings r;
-		// The setting goes from 0 (the sharpest) to 10 (off). RCAS takes the number of stops (halvings)
-		// of the sharpening, so 0 stops is the strongest.
-		r.sharpness = std::clamp(s.fsrSharpness * 0.4f, 0.0f, 4.0f);
-		r.sharpen = s.fsrSharpness < 10.0f;
-		return r;
-	}
 
 	// The presets of a pack, with the names of the pack (the settings show the rewritten ones). When a list of presets
 	// is given, only those are offered (the packs have many more than the settings show).
