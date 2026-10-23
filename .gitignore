@@ -70,3 +70,4 @@ __pycache__/
 tools/dev/.rpxcache/
 # vcpkg installs the dependencies of the project here (the manifest is in the root of the repository)
 vcpkg_installed/
+comp.spv
