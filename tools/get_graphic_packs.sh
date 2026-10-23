@@ -37,18 +37,37 @@ rm -rf "$extract"
 mkdir -p "$extract"
 unzip -q -o "$zip" -d "$extract"
 
-for pack in "BreathOfTheWild/Graphics" "BreathOfTheWild/Mods/FPS++" "BreathOfTheWild/Mods/DrawDistance" \
+for pack in \
+            "BreathOfTheWild/Graphics" \
+            "BreathOfTheWild/Mods/FPS++" \
+            "BreathOfTheWild/Mods/DrawDistance" \
+            "BreathOfTheWild/Mods/Weather" \
+            "BreathOfTheWild/Mods/RemoveFog" \
+            "BreathOfTheWild/Mods/CelShading" \
+            "BreathOfTheWild/Mods/DayLength" \
+            "BreathOfTheWild/Mods/HUDElements" \
+            "BreathOfTheWild/Mods/CameraSensitivity" \
+            "BreathOfTheWild/Mods/MenuCursorSpeed" \
+            "BreathOfTheWild/Mods/DivineLaserBeam" \
+            "BreathOfTheWild/Mods/GlowingGuardianColor" \
             "BreathOfTheWild/Enhancements" \
-            "BreathOfTheWild/Cheats/ArrowDrawSpeed" "BreathOfTheWild/Cheats/Durability" \
-            "BreathOfTheWild/Cheats/MasterModeOptions" "BreathOfTheWild/Cheats/9999StampsLimit" \
-            "BreathOfTheWild/Cheats/InfiniteAmiibo" "BreathOfTheWild/Cheats/InfiniteArrows" \
-            "BreathOfTheWild/Cheats/InfiniteDaruk" "BreathOfTheWild/Cheats/InfiniteHearts" \
-            "BreathOfTheWild/Cheats/InfiniteMipha" "BreathOfTheWild/Cheats/InfiniteMotorcycleEnergy" \
-            "BreathOfTheWild/Cheats/InfiniteRevali" "BreathOfTheWild/Cheats/InfiniteStamina" \
+            "BreathOfTheWild/Cheats/ArrowDrawSpeed" \
+            "BreathOfTheWild/Cheats/Durability" \
+            "BreathOfTheWild/Cheats/MasterModeOptions" \
+            "BreathOfTheWild/Cheats/9999StampsLimit" \
+            "BreathOfTheWild/Cheats/PreventRandomSpawns" \
+            "BreathOfTheWild/Cheats/InfiniteAmiibo" \
+            "BreathOfTheWild/Cheats/InfiniteArrows" \
+            "BreathOfTheWild/Cheats/InfiniteDaruk" \
+            "BreathOfTheWild/Cheats/InfiniteHearts" \
+            "BreathOfTheWild/Cheats/InfiniteMipha" \
+            "BreathOfTheWild/Cheats/InfiniteMotorcycleEnergy" \
+            "BreathOfTheWild/Cheats/InfiniteRevali" \
+            "BreathOfTheWild/Cheats/InfiniteStamina" \
             "BreathOfTheWild/Cheats/InfiniteUrbosa"; do
   if [ ! -d "$extract/$pack" ]; then
-    echo "$pack was not found in graphicPacks$version.zip" >&2
-    exit 1
+    echo "$pack was not found in graphicPacks$version.zip (the game looks for it in the packs of Cemu)" >&2
+    continue
   fi
   rm -rf "${destination:?}/$pack"
   mkdir -p "$(dirname "$destination/$pack")"

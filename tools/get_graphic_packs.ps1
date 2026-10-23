@@ -11,7 +11,35 @@ $ErrorActionPreference = "Stop"
 $version = 987
 $sha256 = "FFF8DF5D8122B18871C0485FE266873644ED5254C15EDE727BAD1EF5F383951D"
 $url = "https://github.com/cemu-project/cemu_graphic_packs/releases/download/Github$version/graphicPacks$version.zip"
-$packs = @("BreathOfTheWild/Graphics/", "BreathOfTheWild/Mods/FPS++/")
+$packs = @(
+    "BreathOfTheWild/Graphics/",
+    "BreathOfTheWild/Mods/FPS++/",
+    "BreathOfTheWild/Mods/DrawDistance/",
+    "BreathOfTheWild/Mods/Weather/",
+    "BreathOfTheWild/Mods/RemoveFog/",
+    "BreathOfTheWild/Mods/CelShading/",
+    "BreathOfTheWild/Mods/DayLength/",
+    "BreathOfTheWild/Mods/HUDElements/",
+    "BreathOfTheWild/Mods/CameraSensitivity/",
+    "BreathOfTheWild/Mods/MenuCursorSpeed/",
+    "BreathOfTheWild/Mods/DivineLaserBeam/",
+    "BreathOfTheWild/Mods/GlowingGuardianColor/",
+    "BreathOfTheWild/Enhancements/",
+    "BreathOfTheWild/Cheats/ArrowDrawSpeed/",
+    "BreathOfTheWild/Cheats/Durability/",
+    "BreathOfTheWild/Cheats/MasterModeOptions/",
+    "BreathOfTheWild/Cheats/9999StampsLimit/",
+    "BreathOfTheWild/Cheats/PreventRandomSpawns/",
+    "BreathOfTheWild/Cheats/InfiniteAmiibo/",
+    "BreathOfTheWild/Cheats/InfiniteArrows/",
+    "BreathOfTheWild/Cheats/InfiniteDaruk/",
+    "BreathOfTheWild/Cheats/InfiniteHearts/",
+    "BreathOfTheWild/Cheats/InfiniteMipha/",
+    "BreathOfTheWild/Cheats/InfiniteMotorcycleEnergy/",
+    "BreathOfTheWild/Cheats/InfiniteRevali/",
+    "BreathOfTheWild/Cheats/InfiniteStamina/",
+    "BreathOfTheWild/Cheats/InfiniteUrbosa/",
+)
 
 $root = Split-Path -Parent $PSScriptRoot
 if (-not $Destination) { $Destination = Join-Path $root "bin\resources\pcedition\graphicPacks" }

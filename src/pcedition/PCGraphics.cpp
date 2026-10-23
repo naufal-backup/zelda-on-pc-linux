@@ -1135,7 +1135,7 @@ blr
 		const fs::path dst = PacksDir() / "BreathOfTheWild";
 		// copy the community packs we use into the data folder: once, and again when the shipped copy changed
 		const auto sources = CommunityPackSources();
-		for (const char* sub : {"Graphics", "Mods/FPS++"})
+		for (const char* sub : {"Graphics", "Mods/FPS++", "Mods/DrawDistance", "Mods/Weather", "Mods/RemoveFog", "Mods/CelShading", "Mods/DayLength", "Mods/HUDElements", "Mods/CameraSensitivity", "Mods/MenuCursorSpeed", "Mods/DivineLaserBeam", "Mods/GlowingGuardianColor", "Enhancements", "Cheats/ArrowDrawSpeed", "Cheats/Durability", "Cheats/MasterModeOptions", "Cheats/9999StampsLimit", "Cheats/PreventRandomSpawns", "Cheats/InfiniteAmiibo", "Cheats/InfiniteArrows", "Cheats/InfiniteDaruk", "Cheats/InfiniteHearts", "Cheats/InfiniteMipha", "Cheats/InfiniteMotorcycleEnergy", "Cheats/InfiniteRevali", "Cheats/InfiniteStamina", "Cheats/InfiniteUrbosa"})
 		{
 			const fs::path d = dst / sub;
 			bool have = fs::exists(d / "rules.txt", ec);
