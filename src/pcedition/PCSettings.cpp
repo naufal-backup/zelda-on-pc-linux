@@ -234,7 +234,6 @@ namespace pce
 			Get(m, "Graphics", "FOV", s.fov);
 			Get(m, "Graphics", "ShowFPS", s.showFps);
 			Get(m, "Graphics", "FrameGeneration", s.frameGeneration);
-			Get(m, "Graphics", "FSRUpscaler", s.fsrUpscaler);
 			Get(m, "Graphics", "FSRSharpness", s.fsrSharpness);
 			s.frameGeneration = std::clamp(s.frameGeneration, 0, 1); // 2 was the removed camera warp
 			// "CPUPinning" was the key while the option was on by default: it is not read any more, so everybody starts
@@ -354,7 +353,6 @@ namespace pce
 		o << "ShowFPS=" << b(s.showFps) << "\n";
 		o << "PinThreads=" << b(s.cpuPinning) << "\n";
 		o << "FrameGeneration=" << s.frameGeneration << "\n";
-		o << "FSRUpscaler=" << s.fsrUpscaler << "\n";
 		o << "FSRSharpness=" << s.fsrSharpness << "\n\n";
 		o << "[Display]\n";
 		o << "DisplayMode=" << s.displayMode << "\n\n";

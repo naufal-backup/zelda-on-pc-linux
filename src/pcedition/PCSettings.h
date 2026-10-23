@@ -155,11 +155,9 @@ namespace pce
 		// already keeps the game on the V-Cache one), and a thread tied to one core cannot get out of the way of others.
 		bool cpuPinning = false;
 		int frameGeneration = 0;            // 0 off, 1 AMD FSR 3 frame generation
-		// AMD FSR 1.0: the picture of the game is drawn smaller and made bigger by the graphics card
-		// (EASU) and then sharpened (RCAS). 0 off, 1 quality (1.5x), 2 balanced (1.7x), 3 performance (2x),
-		// 4 ultra performance (3x). The size of the picture of the game is added to the Graphics pack.
-		int fsrUpscaler = 0;
-		float fsrSharpness = 5.0f;          // RCAS: 0 the sharpest, 10 the softest
+		// AMD FSR 1.0 RCAS: sharpening of the picture after it was scaled to the window. 0 the sharpest,
+		// 10 turns it off. Applied by its own pass, so a change is there at once.
+		float fsrSharpness = 5.0f;
 
 		// audio (Cemu's TV audio): the volume is applied at once, speakers and device when the game starts
 		float volume = 50.0f;               // percent

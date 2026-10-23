@@ -536,256 +536,7 @@ blr
 )";
 		}
 
-		// The size of the picture of the game for a FSR mode: the resolution of the window divided by the
-	// ratio, rounded to a multiple of 8 (the shaders of the game work better with those).
-	static bool FsrInternalSize(int mode, int& outWidth, int& outHeight)
-	{
-		if (mode <= 0 || mode >= (int)GetFsrModes().size())
-			return false;
-		const auto& res = GetResolutionOptions(GetSettings().aspectRatio);
-		const int index = std::clamp(GetSettings().resolutionPreset, 0, (int)res.size() - 1);
-		const int w = res[index].width, h = res[index].height;
-		const float ratio = GetFsrModes()[mode].ratio;
-		outWidth = std::max(8, ((int)std::lround(w / ratio) + 7) / 8 * 8);
-		outHeight = std::max(8, ((int)std::lround(h / ratio) + 7) / 8 * 8);
-		return true;
-	}
-
-	// The Graphics pack is where the size of the picture of the game is chosen, so the sizes of the FSR
-	// modes are added to it as extra resolution presets (once, at startup).
-	static std::string FsrPresetName(int w, int h, int mode)
-	{
-		return fmt::format("{}x{} (FSR {})", w, h, GetFsrModes()[mode].label);
-	}
-
-	static void AddFsrResolutions()
-	{
-		const fs::path rules = PacksDir() / "BreathOfTheWild" / "Graphics" / "rules.txt";
-		std::error_code ec;
-		if (!fs::exists(rules, ec))
-			return;
-
-		std::ifstream in(rules, std::ios::binary);
-		if (!in)
-			return;
-		std::string text((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
-		in.close();
-
-		// remove the sizes of an earlier start, then add them again (the screen can have another size now)
-		const size_t start = text.find("\n[Preset]\nname = ");
-		if (start != std::string::npos && text.find("(FSR ", start) != std::string::npos)
-		{
-			const size_t firstFsr = text.find("[Preset]", text.find("(FSR ", start) - 400);
-			if (firstFsr != std::string::npos && firstFsr > start)
-				text.resize(text.rfind('\n', firstFsr) == std::string::npos ? firstFsr : text.rfind('\n', firstFsr));
-		}
-
-		std::string add;
-		for (int mode = 1; mode < (int)GetFsrModes().size(); mode++)
-		{
-			int w = 0, h = 0;
-			if (!FsrInternalSize(mode, w, h))
-				continue;
-			// every Resolution preset sets the same two variables, so these are valid presets
-			add += fmt::format("\n[Preset]\nname = {}\ncategory = Resolution\n$width:int = {}\n$height:int = {}\n",
-							   FsrPresetName(w, h, mode), w, h);
-		}
-		if (add.empty())
-			return;
-
-		std::ofstream out(rules, std::ios::binary | std::ios::trunc);
-		if (!out)
-			return;
-		out << text << add;
-	}
-
-	// Select the size of the picture of the game for the FSR mode (exact name, the sizes of two modes can
-	// be the same on small screens).
-	static void SelectFsrResolution(const std::shared_ptr<GraphicPack2>& gfx, int mode, bool* changed)
-	{
-		int w = 0, h = 0;
-		if (!FsrInternalSize(mode, w, h))
-			return;
-		SelectPresetExact(gfx, "Resolution", FsrPresetName(w, h, mode), changed);
-	}
-
-
-	void SetPacksFromSettings(const Settings& s, bool live, bool* fpsChanged = nullptr, bool* gfxChanged = nullptr)
-		{
-			// resolution, shadows, anti-aliasing
-			if (auto gfx = FindPack("BreathOfTheWild/Graphics"))
-			{
-				gfx->SetEnabled(true);
-				const int aspect = EffectiveAspect(s.aspectRatio);
-				const auto& res = GetResolutionOptions(aspect);
-				const int ri = std::clamp(s.resolutionPreset, 0, (int)res.size() - 1);
-				if (!live)
-				{
-					static const char* kAspect[] = {"16:9", "16:9", "16:10", "21:9", "32:9"};
-					SelectPreset(gfx, "Aspect Ratio", kAspect[aspect], gfxChanged);
-					SelectPreset(gfx, "Resolution", fmt::format("{}x{}", res[ri].width, res[ri].height), gfxChanged);
-					// AMD FSR 1.0: the picture of the game is drawn smaller, the graphics card makes it bigger
-					if (s.fsrUpscaler > 0)
-						SelectFsrResolution(gfx, std::clamp(s.fsrUpscaler, 0, (int)GetFsrModes().size() - 1), gfxChanged);
-					if (aspect >= 3)
-						SelectPreset(gfx, "Ultrawide HUD Mode", s.ultrawideHud == 1 ? "Centered HUD" : "Edge HUD", gfxChanged);
-					cemuLog_log(LogType::Force, "PCE: aspect ratio {} (setting {}), resolution {}x{}", kAspect[aspect], s.aspectRatio, res[ri].width, res[ri].height);
-					static const char* kShadow[] = {"Low", "Medium", "High", "Ultra"};
-					SelectPreset(gfx, "Shadows", kShadow[std::clamp(s.shadowPreset, 0, 3)], gfxChanged);
-					static const char* kShadowDist[] = {"Medium", "High", "Very High", "Ultra"};
-					SelectPreset(gfx, "Shadow Draw Distance", kShadowDist[std::clamp(s.shadowPreset, 0, 3)], gfxChanged);
-				}
-				static const char* kAA[] = {"None", "Normal FXAA", "NVIDIA FXAA"};
-				SelectPreset(gfx, "Anti-Aliasing", kAA[std::clamp(s.antiAliasing, 0, 2)], gfxChanged);
-			}
-			// FPS++: full dynamic game speed (physics corrected), user chosen limit
-			if (auto fps = FindPack("BreathOfTheWild/Mods/FPS++"))
-			{
-				fps->SetEnabled(true);
-				SelectPreset(fps, "Fence Type", "Performance Fence", fpsChanged);
-				// the cutscenes have their own frame rate limit: only the few that need it, all of them at 60 or 30 FPS,
-				// or none (the last one crashes above 30-60 FPS)
-				static const char* kCutsceneFps[] = {"Automatically Limit", "Limit all cutscenes to 60FPS",
-													  "Limit all cutscenes to 30FPS", "Disabled"};
-				SelectPreset(fps, "Cutscene FPS Limit", kCutsceneFps[std::clamp(s.cutsceneFps, 0, 3)], fpsChanged);
-				SelectPreset(fps, "Frame Average", "8 Frames", fpsChanged);
-				SelectPreset(fps, "Static Mode", "Disabled", fpsChanged);
-				SelectPreset(fps, "Debug Options", "Disabled", fpsChanged);
-				// The mod has two sets of presets: the normal mode has 20 to 240 in the usual steps, the advanced mode
-				// has more (33, 40, 48, 244). The mode is switched to the one that has the value that is wanted.
-				// with frame generation the limit counts the frames shown: the game runs at half of it (steady pacing too)
-				static const int kLimits[] = {20, 30, 33, 40, 45, 48, 55, 60, 72, 75, 90, 120, 144, 165, 240, 244};
-				const int target = s.frameGeneration == 1 ? s.fpsLimit / 2 : s.fpsLimit;
-				int limit = kLimits[0];
-				for (int v : kLimits)
-					if (target >= v)
-						limit = v;
-				const bool advanced = limit == 33 || limit == 40 || limit == 48 || limit == 244;
-				SelectPreset(fps, "Mode", advanced ? "Advanced Settings" : "Normal Settings", fpsChanged);
-				if (advanced)
-					SelectPreset(fps, "Framerate Limit", fmt::format("{}FPS (", limit), fpsChanged);
-				else
-					SelectPreset(fps, "FPS Limit", fmt::format("{}FPS Limit", limit), fpsChanged);
-			}
-			// the draw distance (the level of detail) of the graphic pack: it is one of the options of the packs
-			// (see kPackOptions and ApplyPackOptions)
-			// the shader filters of the graphic pack (the "Enhancements" pack of the community)
-			if (auto en = FindPack("BreathOfTheWild/Enhancements"))
-			{
-				en->SetEnabled(true);
-				SelectPreset(en, "Clarity", kClarityPresets[std::clamp(s.clarity, 0, (int)std::size(kClarityPresets) - 1)], gfxChanged);
-				SelectPreset(en, "Depth Of Field", s.depthOfField ? "Enabled" : "Disabled", gfxChanged);
-				SelectPreset(en, "Reflections", s.reflections ? "Enhanced Reflections" : "Normal Reflections", gfxChanged);
-				SelectPreset(en, "Reflection Range", kReflectionRangePresets[std::clamp(s.reflectionRange, 0, (int)std::size(kReflectionRangePresets) - 1)], gfxChanged);
-				SelectPreset(en, "Anisotropic Filtering", kAnisotropyPresets[std::clamp(s.anisotropy, 0, (int)std::size(kAnisotropyPresets) - 1)], gfxChanged);
-			}
-			// the cheats of the graphic pack
-			if (auto ch = FindPack("BreathOfTheWild/Cheats/ArrowDrawSpeed"))
-			{
-				ch->SetEnabled(true);
-				static const char* kDrawSpeed[] = {"Disable Bow", "0.5x", "0.75x", "1x (Default)", "1.5x",
-												  "2x", "3x", "10x", "20x", "40x"};
-				SelectPreset(ch, "Draw Speed", kDrawSpeed[std::clamp(s.arrowDrawSpeed, 0, 9)], gfxChanged);
-			}
-			if (auto du = FindPack("BreathOfTheWild/Cheats/Durability"))
-			{
-				du->SetEnabled(true);
-				static const char* kDurability[] = {"One Hit", "x1 (Default)", "x1.5", "x2", "x3", "x4", "x5", "x10", "Unbreakable"};
-				SelectPreset(du, "Durability Modifier", kDurability[std::clamp(s.durability, 0, 8)], gfxChanged);
-			}
-			if (auto mm = FindPack("BreathOfTheWild/Cheats/MasterModeOptions"))
-			{
-				mm->SetEnabled(true);
-				// every option is a pair of presets: the first one is the default, the bit of the mask says which one
-				static const char* kMasterMode[][2] = {
-					{"Disabled (Default)", "Enabled (shows broken options)"},        // show the debug options
-					{"Disabled (Default)", "Enabled"},                              // 1-hit-kill protection
-					{"Enabled (Default)", "Disabled"},                              // no Ganon stun lock
-					{"Enabled (Default)", "Disabled"},                              // randomized guardian fire timing
-					{"Enabled (Default)", "Disabled"},                              // shorter enemy notice
-					{"Enabled (Default)", "Disabled"},                              // is last play hard mode
-					{"Disabled (Default)", "Enabled"},                              // nerf cooking
-				};
-				for (size_t i = 0; i < std::size(kMasterMode); i++)
-					SelectPreset(mm, MasterModeCategory(i), kMasterMode[i][(s.masterModeMask >> i) & 1], gfxChanged);
-			}
-			// the cheat packs that are simply switched on or off
-			static const char* kCheatPacks[] = {
-				"BreathOfTheWild/Cheats/InfiniteAmiibo", "BreathOfTheWild/Cheats/InfiniteArrows",
-				"BreathOfTheWild/Cheats/InfiniteDaruk", "BreathOfTheWild/Cheats/InfiniteHearts",
-				"BreathOfTheWild/Cheats/InfiniteMipha", "BreathOfTheWild/Chearts/InfiniteMotorcycleEnergy",
-				"BreathOfTheWild/Cheats/InfiniteRevali", "BreathOfTheWild/Chearts/InfiniteStamina",
-				"BreathOfTheWild/Cheats/InfiniteUrbosa", "BreathOfTheWild/Cheats/9999StampsLimit",
-			};
-			for (size_t i = 0; i < std::size(kCheatPacks); i++)
-			{
-				if (auto cp = FindPack(kCheatPacks[i]))
-					cp->SetEnabled((s.cheatMask >> i) & 1);
-			}
-			if (auto pce = FindPack("BotWPCEdition"))
-				pce->SetEnabled(true);
-		}
-	}
-
-	// the name a preset of a pack is shown with in the settings
-	std::string PresetDisplayName(const std::string& preset)
-	{
-		for (const auto& r : kPresetRenames)
-			if (preset == r.from)
-				return r.to;
-		return preset;
-	}
-
-	// The AMD FidelityFX runtime next to the program: the frame generation needs it. It is not part of the program
-	// (the AMD SDK has no build for Linux), so the option is shown but it stays grey when the library is not there.
-	bool FrameGenerationAvailable()
-	{
-		const char* name = BOOST_OS_WINDOWS ? "amd_fidelityfx_vk.dll" : "libamd_fidelityfx_vk.so";
-		std::error_code ec;
-		return fs::exists(pce::GetExeDir() / name, ec);
-	}
-
-	// ---- AMD FSR 1.0 ----
-	const std::vector<FsrMode>& GetFsrModes()
-	{
-		// The ratios of the four modes of FSR 1.0 (Quality 1.5x ... Ultra Performance 3.0x)
-		static const std::vector<FsrMode> s_modes = {
-			{"Off", 1.0f},
-			{"Quality (1.5x)", 1.5f},
-			{"Balanced (1.7x)", 1.7f},
-			{"Performance (2.0x)", 2.0f},
-			{"Ultra Performance (3.0x)", 3.0f},
-		};
-		return s_modes;
-	}
-
-	bool FsrAvailable()
-	{
-		// FSR 1.0 is implemented in the renderer itself (compute shaders), so it only needs Vulkan.
-		// On the renderers without it (OpenGL, Metal) the option does nothing and stays off.
-		const auto api = GetConfig().graphic_api;
-		return api == kVulkan;
-	}
-
-	FsrRenderSettings FsrSettings()
-	{
-		const Settings s = GetSettings();
-		FsrRenderSettings r;
-		r.mode = std::clamp(s.fsrUpscaler, 0, (int)GetFsrModes().size() - 1);
-		// 0 in the settings is the sharpest, 10 the softest; RCAS takes the number of stops
-		r.sharpness = std::clamp(s.fsrSharpness * 0.4f, 0.0f, 4.0f);
-		// the quick modes already come from a half resolution picture: sharpening them too would only add noise
-		r.sharpen = r.mode <= 2;
-		return r;
-	}
-
-	bool FsrEnabled()
-	{
-		const Settings s = GetSettings();
-		return s.fsrUpscaler > 0 && FsrAvailable();
-	}
-
-	// The presets of a pack, with the names of the pack (the settings show the rewritten ones). When a list of presets
+		// The presets of a pack, with the names of the pack (the settings show the rewritten ones). When a list of presets
 	// is given, only those are offered (the packs have many more than the settings show).
 	const std::vector<std::pair<std::string, std::string>>& PackPresetChoices(const std::string& pack, const std::string& category, const char* const* presets)
 	{
@@ -925,6 +676,28 @@ blr
 		return base;
 	}
 
+	// The AMD FidelityFX runtime next to the program: the frame generation needs it. It is not part of the
+	// program (the AMD SDK has no build for Linux), so the option is shown but it stays grey when the
+	// library is not there.
+	bool FrameGenerationAvailable()
+	{
+		const char* name = BOOST_OS_WINDOWS ? "amd_fidelityfx_vk.dll" : "libamd_fidelityfx_vk.so";
+		std::error_code ec;
+		return fs::exists(pce::GetExeDir() / name, ec);
+	}
+
+	// ---- AMD FSR 1.0 RCAS (penajaman) ----
+	FsrRenderSettings FsrSettings()
+	{
+		const Settings s = GetSettings();
+		FsrRenderSettings r;
+		// The setting goes from 0 (the sharpest) to 10 (off). RCAS takes the number of stops (halvings)
+		// of the sharpening, so 0 stops is the strongest.
+		r.sharpness = std::clamp(s.fsrSharpness * 0.4f, 0.0f, 4.0f);
+		r.sharpen = s.fsrSharpness < 10.0f;
+		return r;
+	}
+
 	const std::vector<VulkanDriver>& GetVulkanDrivers()
 	{
 		static std::vector<VulkanDriver> sDrivers;
@@ -1061,18 +834,52 @@ blr
 
 	const std::vector<ResolutionOption>& GetResolutionOptions(int aspect)
 	{
-		// (resolutions the community graphics pack has for each aspect ratio)
+		// The sizes the community graphics pack offers for every aspect ratio. The names in the settings are
+		// the sizes themselves, and the pack is asked for exactly that size (see SetPacksFromSettings).
+		// 16:9
 		static const std::vector<ResolutionOption> r16_9 = {
-			{1280, 720, "1280 x 720"}, {1920, 1080, "1920 x 1080"}, {2560, 1440, "2560 x 1440"}, {3200, 1800, "3200 x 1800"}, {3840, 2160, "3840 x 2160"},
+			{320, 180, "320 x 180 (smallest)"},
+			{640, 360, "640 x 360"},
+			{960, 540, "960 x 540"},
+			{1136, 640, "1136 x 640"},
+			{1280, 720, "1280 x 720 (HD, default)"},
+			{1600, 900, "1600 x 900"},
+			{1920, 1080, "1920 x 1080 (Full HD)"},
+			{2560, 1440, "2560 x 1440 (QHD)"},
+			{3200, 1800, "3200 x 1800"},
+			{3840, 2160, "3840 x 2160 (4K)"},
+			{5120, 2880, "5120 x 2880 (5K)"},
+			{7680, 4320, "7680 x 4320 (8K)"},
+			{10240, 5760, "10240 x 5760 (largest)"},
 		};
+		// 16:10
 		static const std::vector<ResolutionOption> r16_10 = {
-			{1280, 800, "1280 x 800"}, {1920, 1200, "1920 x 1200"}, {2560, 1600, "2560 x 1600"}, {2880, 1800, "2880 x 1800"}, {3840, 2400, "3840 x 2400"},
+			{1280, 800, "1280 x 800 (smallest)"},
+			{1440, 900, "1440 x 900"},
+			{1680, 1050, "1680 x 1050"},
+			{1920, 1200, "1920 x 1200"},
+			{2560, 1600, "2560 x 1600 (QHD)"},
+			{2880, 1800, "2880 x 1800"},
+			{3840, 2400, "3840 x 2400 (4K)"},
+			{5120, 3200, "5120 x 3200 (largest)"},
 		};
+		// 21:9
 		static const std::vector<ResolutionOption> r21_9 = {
-			{1720, 720, "1720 x 720"}, {2560, 1080, "2560 x 1080"}, {3440, 1440, "3440 x 1440"}, {4300, 1800, "4300 x 1800"}, {5120, 2160, "5120 x 2160"},
+			{1720, 720, "1720 x 720 (smallest)"},
+			{2100, 900, "2100 x 900"},
+			{2560, 1080, "2560 x 1080"},
+			{3440, 1440, "3440 x 1440"},
+			{3840, 1600, "3840 x 1600"},
+			{4300, 1800, "4300 x 1800"},
+			{5120, 2160, "5120 x 2160"},
+			{6880, 2880, "6880 x 2880 (largest)"},
 		};
+		// 32:9
 		static const std::vector<ResolutionOption> r32_9 = {
-			{3840, 1080, "3840 x 1080 (smallest)"}, {3840, 1080, "3840 x 1080"}, {5120, 1440, "5120 x 1440"}, {5120, 1440, "5120 x 1440 (largest below 2160)"}, {7680, 2160, "7680 x 2160"},
+			{3840, 1080, "3840 x 1080 (smallest)"},
+			{5120, 1440, "5120 x 1440"},
+			{7680, 2160, "7680 x 2160"},
+			{10240, 2880, "10240 x 2880 (largest)"},
 		};
 		switch (aspect)
 		{
@@ -1171,8 +978,6 @@ blr
 		// remove leftovers from older builds
 		fs::remove(pce / "patch_dev.asm", ec);
 
-		// the sizes of the FSR modes belong to the Graphics pack (they are choices of its resolution)
-		AddFsrResolutions();
 		WriteCameraPatch(pce / "patch_PCCamera.asm");
 		// keyboard & mouse button prompts (font archive + resource size table in the pack's content folder)
 		Prompts::Prepare(pce);

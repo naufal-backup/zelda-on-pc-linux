@@ -190,29 +190,16 @@ namespace pce::Graphics
 	// whether the AMD FidelityFX runtime is there: the frame generation needs it
 	bool FrameGenerationAvailable();
 
-	// ---- AMD FSR 1.0 (EASU + RCAS) ----
-	// The game draws its picture in a smaller resolution (the Graphics resolution divided by the ratio of
-	// the mode) and the graphics card makes it bigger again, which keeps more detail than plain scaling.
-	// The size of the picture of the game for every mode is added to the Graphics pack as extra presets.
-	struct FsrMode
-	{
-		const char* label;
-		float ratio;      // how much smaller the picture of the game is drawn
-	};
-	// the modes offered in the settings (index = the value of Settings::fsrUpscaler)
-	const std::vector<FsrMode>& GetFsrModes();
-	// Is FSR 1.0 available on this machine? It needs a Vulkan device with compute support.
-	bool FsrAvailable();
-	// The settings of FSR as the renderer needs them
+	// ---- AMD FSR 1.0 RCAS: penajaman setelah penskalaan ----
+	// This is RCAS from FSR 1.0 (the sharpening half). It runs as a post process pass on the picture, so
+	// changing it takes effect at once. The upscaling half (EASU) is not used: it would need the game to
+	// draw its picture in a smaller resolution, which cannot be changed while the game runs.
 	struct FsrRenderSettings
 	{
-		int mode = 0;
-		float sharpness = 5.0f;   // stop of RCAS: 0 the sharpest
-		bool sharpen = true;
+		float sharpness = 5.0f;   // 0 (the sharpest) .. 10 (off)
+		bool sharpen = false;
 	};
 	FsrRenderSettings FsrSettings();
-	// true when a mode is chosen and FSR can be used
-	bool FsrEnabled();
 	// A Vulkan driver (the ICD manifests the loader reads). A machine can have several of them for the same card
 	// (the proprietary driver of AMD and RADV, for example), and then the loader offers both.
 	struct VulkanDriver

@@ -1,5 +1,5 @@
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanRenderer.h"
-#include "Cafe/HW/Latte/Renderer/Vulkan/VulkanFSR1.h"
+#include "Cafe/HW/Latte/Renderer/Vulkan/VulkanFSRSharpen.h"
 #include "pcedition/PCEdition.h"
 #include "pcedition/PCSettings.h"
 #include "pcedition/PCGraphics.h"
@@ -3516,25 +3516,19 @@ void VulkanRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 	memoryBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_SHADER_READ_BIT;
 	vkCmdPipelineBarrier(m_state.currentCommandBuffer, srcStage, dstStage, 0, 1, &memoryBarrier, 0, nullptr, 0, nullptr);
 
-	// AMD FSR 1.0: gambar game dibuat lebih kecil lalu diperbesar di sini (EASU) dan ditajamkan (RCAS).
-	// Hasilnya dipakai sebagai sumber blit menggantikan gambar asli.
-	VkImageView fsrView = VK_NULL_HANDLE;
-	if (!padView && pce::IsActive() && pce::Graphics::FsrEnabled())
+	// AMD FSR 1.0 RCAS: the picture is sharpened after it was scaled to the window. It runs as its own
+	// pass with its parameters in uniforms, so a change of the sharpness is there at once.
+	VkImageView sharpenView = VK_NULL_HANDLE;
+	if (!padView && pce::IsActive() && imageWidth > 0 && imageHeight > 0)
 	{
 		const auto fsr = pce::Graphics::FsrSettings();
-		if (fsr.mode > 0 && imageWidth > 0 && imageHeight > 0)
+		if (fsr.sharpen)
 		{
-			sint32 srcW = 0, srcH = 0;
-			texView->baseTexture->GetEffectiveSize(srcW, srcH, 0);
-			if (srcW > 0 && srcH > 0 && srcW < imageWidth)
-			{
-				if (!m_fsr1)
-					m_fsr1 = std::make_unique<VulkanFSR1>(m_logicalDevice, m_physicalDevice);
-				fsrView = m_fsr1->Upscale(m_state.currentCommandBuffer, texViewVk->GetViewRGBA()->m_textureImageView,
-										  ((LatteTextureVk*)texViewVk->baseTexture)->GetDefaultLayout(),
-										  (uint32)srcW, (uint32)srcH, (uint32)imageWidth, (uint32)imageHeight,
-										  fsr.sharpness, fsr.sharpen);
-			}
+			if (!m_fsrSharpen)
+				m_fsrSharpen = std::make_unique<VulkanFSRSharpen>(m_logicalDevice, m_physicalDevice);
+			sharpenView = m_fsrSharpen->Sharpen(m_state.currentCommandBuffer, texViewVk->GetViewRGBA()->m_textureImageView,
+												((LatteTextureVk*)texViewVk->baseTexture)->GetDefaultLayout(),
+												(uint32)imageWidth, (uint32)imageHeight, fsr.sharpness);
 		}
 	}
 
@@ -3583,9 +3577,63 @@ void VulkanRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 	auto outputUniformOffset = uniformData_uploadUniformDataBufferGetOffset({(uint8*)&outputUniforms, sizeof(decltype(outputUniforms))});
 
 	VkDescriptorSet blitSet = descriptSet;
-	if (fsrView != VK_NULL_HANDLE)
+	if (sharpenView != VK_NULL_HANDLE)
 	{
-		blitSet = backbufferBlit_createDescriptorSetForView(m_swapchainDescriptorSetLayout, fsrView, true);
+		const uint64 hash = (uint64)sharpenView * 31u + 11u;
+		const auto it = m_backbufferBlitDescriptorSetCache.find(hash);
+		if (it != m_backbufferBlitDescriptorSetCache.cend())
+		{
+			blitSet = it->second;
+		}
+		else
+		{
+			VkDescriptorSetAllocateInfo dsai{};
+			dsai.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+			dsai.descriptorPool = m_descriptorPool;
+			dsai.descriptorSetCount = 1;
+			dsai.pSetLayouts = &m_swapchainDescriptorSetLayout;
+			VkDescriptorSet set = VK_NULL_HANDLE;
+			if (vkAllocateDescriptorSets(m_logicalDevice, &dsai, &set) == VK_SUCCESS)
+			{
+				if (!m_fsrBlitSampler)
+				{
+					VkSamplerCreateInfo sci{VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};
+					sci.magFilter = VK_FILTER_LINEAR;
+					sci.minFilter = VK_FILTER_LINEAR;
+					sci.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+					sci.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+					sci.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+					sci.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+					sci.maxLod = 0.0f;
+					if (vkCreateSampler(m_logicalDevice, &sci, nullptr, &m_fsrBlitSampler) != VK_SUCCESS)
+						UnrecoverableError("Failed to create the FSR blit sampler");
+				}
+				VkDescriptorImageInfo imageInfo{};
+				imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+				imageInfo.imageView = sharpenView;
+				imageInfo.sampler = m_fsrBlitSampler;
+				VkDescriptorBufferInfo ubi{};
+				ubi.buffer = m_uniformVarBuffer;
+				ubi.offset = 0;
+				ubi.range = sizeof(RendererOutputShader::OutputUniformVariables);
+				VkWriteDescriptorSet writes[2]{};
+				writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+				writes[0].dstSet = set;
+				writes[0].dstBinding = 0;
+				writes[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+				writes[0].descriptorCount = 1;
+				writes[0].pImageInfo = &imageInfo;
+				writes[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+				writes[1].dstSet = set;
+				writes[1].dstBinding = 1;
+				writes[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+				writes[1].descriptorCount = 1;
+				writes[1].pBufferInfo = &ubi;
+				vkUpdateDescriptorSets(m_logicalDevice, 2, writes, 0, nullptr);
+				m_backbufferBlitDescriptorSetCache[hash] = set;
+				blitSet = set;
+			}
+		}
 	}
 	vkCmdBindDescriptorSets(m_state.currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &blitSet,
 		1, &outputUniformOffset);
@@ -3676,71 +3724,6 @@ VkDescriptorSet VulkanRenderer::backbufferBlit_createDescriptorSet(VkDescriptorS
 
 
 	vkUpdateDescriptorSets(m_logicalDevice, std::size(descriptorWrites), descriptorWrites, 0, nullptr);
-	performanceMonitor.vk.numDescriptorSamplerTextures.increment();
-
-	m_backbufferBlitDescriptorSetCache[hash] = result;
-	return result;
-}
-
-// Descriptor set for the blit that samples an image view we own (the FSR 1.0 result) instead of a
-// Latte texture. The set is cached per view, so it is not rebuilt for every frame.
-VkDescriptorSet VulkanRenderer::backbufferBlit_createDescriptorSetForView(VkDescriptorSetLayout descriptorSetLayout, VkImageView view, bool useLinearTexFilter)
-{
-	const uint64 hash = (uint64)view * 31u + (useLinearTexFilter ? 7u : 3u);
-	const auto it = m_backbufferBlitDescriptorSetCache.find(hash);
-	if (it != m_backbufferBlitDescriptorSetCache.cend())
-		return it->second;
-
-	VkDescriptorSetAllocateInfo allocInfo{};
-	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-	allocInfo.descriptorPool = m_descriptorPool;
-	allocInfo.descriptorSetCount = 1;
-	allocInfo.pSetLayouts = &descriptorSetLayout;
-
-	VkDescriptorSet result = VK_NULL_HANDLE;
-	if (vkAllocateDescriptorSets(m_logicalDevice, &allocInfo, &result) != VK_SUCCESS)
-		UnrecoverableError("Failed to allocate descriptor sets for the FSR blit");
-	performanceMonitor.vk.numDescriptorSets.increment();
-
-	if (!m_fsrBlitSampler)
-	{
-		VkSamplerCreateInfo sci{VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};
-		sci.magFilter = useLinearTexFilter ? VK_FILTER_LINEAR : VK_FILTER_NEAREST;
-		sci.minFilter = sci.magFilter;
-		sci.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
-		sci.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-		sci.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-		sci.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-		sci.maxLod = 0.0f;
-		if (vkCreateSampler(m_logicalDevice, &sci, nullptr, &m_fsrBlitSampler) != VK_SUCCESS)
-			UnrecoverableError("Failed to create the FSR blit sampler");
-	}
-
-	VkDescriptorImageInfo imageInfo{};
-	imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-	imageInfo.imageView = view;
-	imageInfo.sampler = m_fsrBlitSampler;
-
-	VkWriteDescriptorSet writes[2]{};
-	writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	writes[0].dstSet = result;
-	writes[0].dstBinding = 0;
-	writes[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	writes[0].descriptorCount = 1;
-	writes[0].pImageInfo = &imageInfo;
-
-	VkDescriptorBufferInfo uniformBufferInfo{};
-	uniformBufferInfo.buffer = m_uniformVarBuffer;
-	uniformBufferInfo.offset = 0;
-	uniformBufferInfo.range = sizeof(RendererOutputShader::OutputUniformVariables);
-	writes[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	writes[1].dstSet = result;
-	writes[1].dstBinding = 1;
-	writes[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-	writes[1].descriptorCount = 1;
-	writes[1].pBufferInfo = &uniformBufferInfo;
-
-	vkUpdateDescriptorSets(m_logicalDevice, 2, writes, 0, nullptr);
 	performanceMonitor.vk.numDescriptorSamplerTextures.increment();
 
 	m_backbufferBlitDescriptorSetCache[hash] = result;
