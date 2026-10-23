@@ -1093,8 +1093,8 @@ blr
 		static const char* kCheatPacks[] = {
 			"BreathOfTheWild/Cheats/InfiniteAmiibo", "BreathOfTheWild/Cheats/InfiniteArrows",
 			"BreathOfTheWild/Cheats/InfiniteDaruk", "BreathOfTheWild/Cheats/InfiniteHearts",
-			"BreathOfTheWild/Cheats/InfiniteMipha", "BreathOfTheWild/Chearts/InfiniteMotorcycleEnergy",
-			"BreathOfTheWild/Cheats/InfiniteRevali", "BreathOfTheWild/Chearts/InfiniteStamina",
+			"BreathOfTheWild/Cheats/InfiniteMipha", "BreathOfTheWild/Cheats/InfiniteMotorcycleEnergy",
+			"BreathOfTheWild/Cheats/InfiniteRevali", "BreathOfTheWild/Cheats/InfiniteStamina",
 			"BreathOfTheWild/Cheats/InfiniteUrbosa", "BreathOfTheWild/Cheats/9999StampsLimit",
 		};
 		for (size_t i = 0; i < std::size(kCheatPacks); i++)
@@ -1104,6 +1104,7 @@ blr
 		}
 		if (auto pce = FindPack("BotWPCEdition"))
 			pce->SetEnabled(true);
+	}
 	}
 
 	void ApplySettingsToPacks()
