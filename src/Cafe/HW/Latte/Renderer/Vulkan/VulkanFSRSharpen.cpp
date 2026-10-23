@@ -234,11 +234,14 @@ bool VulkanFSRSharpen::EnsurePipeline()
 	m_format = PickFormat(VK_FORMAT_R16G16B16A16_SFLOAT);
 	const char* formatName = (m_format == VK_FORMAT_R16G16B16A16_SFLOAT) ? "rgba16f" : "rgba8";
 
-	// format gambar adalah bagian dari shader (kualifikasi storage image)
+	// format gambar adalah bagian dari shader (kualifikasi storage image). Panjang yang diganti harus
+	// panjang nama lama (7 untuk "rgba16f"), bukan ditebak: kalau salah, hasilnya "rgba16ff" dan shader
+	// tidak bisa dikompilasi.
 	std::string source(kRcasShader);
-	const size_t pos = source.find("rgba16f) uniform writeonly image2D dstImg");
+	static const std::string kOldFormat = "rgba16f";
+	const size_t pos = source.find(kOldFormat + ") uniform writeonly image2D dstImg");
 	if (pos != std::string::npos)
-		source.replace(pos, 6, formatName);
+		source.replace(pos, kOldFormat.size(), formatName);
 
 	std::string err;
 	auto spirv = RendererShaderVk_CompileCompute(source, err);
