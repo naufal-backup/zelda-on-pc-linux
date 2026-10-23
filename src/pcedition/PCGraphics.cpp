@@ -999,7 +999,6 @@ blr
 				static const char* kAspect[] = {"16:9", "16:9", "16:10", "21:9", "32:9"};
 				SelectPreset(gfx, "Aspect Ratio", kAspect[aspect], gfxChanged);
 				SelectPreset(gfx, "Resolution", fmt::format("{}x{}", res[ri].width, res[ri].height), gfxChanged);
-				if (s.fsrUpscaler > 0)
 				if (aspect >= 3)
 					SelectPreset(gfx, "Ultrawide HUD Mode", s.ultrawideHud == 1 ? "Centered HUD" : "Edge HUD", gfxChanged);
 				cemuLog_log(LogType::Force, "PCE: aspect ratio {} (setting {}), resolution {}x{}", kAspect[aspect], s.aspectRatio, res[ri].width, res[ri].height);
