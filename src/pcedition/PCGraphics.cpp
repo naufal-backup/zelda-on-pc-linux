@@ -921,8 +921,6 @@ blr
 		return PacksDir() / "BotWPCEdition";
 	}
 
-	} // namespace
-
 	namespace
 	{
 		std::atomic<int> sDisplayModeApplied{1};
