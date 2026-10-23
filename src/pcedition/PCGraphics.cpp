@@ -1097,6 +1097,7 @@ blr
 		if (auto pce = FindPack("BotWPCEdition"))
 			pce->SetEnabled(true);
 	}
+	} // namespace
 
 	void ApplySettingsToPacks()
 	{
