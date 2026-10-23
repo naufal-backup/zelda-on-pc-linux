@@ -29,7 +29,6 @@ void LatteRenderTarget_copyToBackbuffer(LatteTextureView* textureView, bool isPa
 #include "Cafe/OS/libs/erreula/erreula.h"
 #include "input/InputManager.h"
 #include "Cafe/OS/libs/swkbd/swkbd.h"
-#include "Cafe/HW/Latte/Renderer/Vulkan/ClarityEffect.h"
 
 uint32 prevScissorX = 0;
 uint32 prevScissorY = 0;
@@ -1556,20 +1555,7 @@ void LatteRenderTarget_copyToBackbuffer(LatteTextureView* textureView, bool isPa
 			filter = LatteTextureView::MagFilter::kNearestNeighbor;
 		}
 	}
-	// Preset Clarity (efek ReShade): kalau dipilih, ia menggantikan shader keluaran biasa. Presetnya
-	// hanya mengubah uniform, jadi mengganti preset tidak perlu restart dan berlaku pada frame berikutnya.
-	if (!isPadView && pce::IsActive())
-	{
-		const int clarityPreset = pce::Reshade::ClarityEffect::Get().GetPreset();
-		if (pce::Reshade::ClarityEffect::IsEnabledPreset(clarityPreset))
-		{
-			if (RendererOutputShader* clarity = pce::Reshade::ClarityEffect::Get().GetShader(clarityPreset))
-			{
-				shader = clarity;
-				filter = LatteTextureView::MagFilter::kLinear;
-			}
-		}
-	}
+	// Preset Clarity ditangani graphic pack "Enhancements" (shader yang dipatch ke pipeline game).
 	cemu_assert(shader);
 	g_renderer->DrawBackbufferQuad(textureView, shader, filter==LatteTextureView::MagFilter::kLinear, imageX, imageY, imageWidth, imageHeight, isPadView, clearBackground);
 	if (!pce::IsActive())

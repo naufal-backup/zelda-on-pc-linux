@@ -543,7 +543,6 @@ if (ENABLE_VULKAN)
     HW/Latte/Renderer/Vulkan/VulkanRendererCore.cpp
     HW/Latte/Renderer/Vulkan/VulkanRenderer.cpp
     HW/Latte/Renderer/Vulkan/VulkanFSR.cpp
-    HW/Latte/Renderer/Vulkan/ClarityEffect.cpp
     HW/Latte/Renderer/Vulkan/VulkanFFX.cpp
     HW/Latte/Renderer/Vulkan/VulkanFFX.h
     HW/Latte/Renderer/Vulkan/VulkanFSR.h

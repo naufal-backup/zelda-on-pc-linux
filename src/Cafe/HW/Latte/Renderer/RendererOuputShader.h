@@ -5,9 +5,6 @@
 
 #include "Cafe/HW/Latte/Core/LatteTexture.h"
 
-#include <vector>
-#include <cstdint>
-
 class RendererOutputShader
 {
 public:
@@ -30,15 +27,6 @@ public:
 	virtual ~RendererOutputShader() = default;
 
 	OutputUniformVariables FillUniformBlockBuffer(const LatteTextureView& texture_view, const Vector2i& output_res, const bool padView) const;
-
-	// Some output shaders (the Clarity effect) carry more uniform data than the standard block:
-	// their uniform buffer holds the standard variables followed by their own. This returns the
-	// bytes to upload for a draw: the standard block, or the whole extended block.
-	virtual bool HasExtendedUniforms() const { return false; }
-	virtual void BuildExtendedUniforms(const OutputUniformVariables& standard, std::vector<uint8>& out) const
-	{
-		out.assign((const uint8*)&standard, (const uint8*)&standard + sizeof(standard));
-	}
 
 	RendererShader* GetVertexShader() const
 	{

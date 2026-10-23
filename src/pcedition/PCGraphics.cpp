@@ -3,7 +3,6 @@
 #include "pcedition/PCEdition.h"
 #include "pcedition/PCSettings.h"
 #include "pcedition/PCPlatform.h"
-#include "Cafe/HW/Latte/Renderer/Vulkan/ClarityEffect.h"
 
 #include <fstream>
 #include <cstring>
@@ -597,9 +596,7 @@ blr
 			if (auto en = FindPack("BreathOfTheWild/Enhancements"))
 			{
 				en->SetEnabled(true);
-				// Clarity runs as its own effect (ClarityEffect), so the pack's Clarity stays off: otherwise the
-				// picture would be graded twice, and the pack's version needs a restart to change.
-				SelectPreset(en, "Clarity", "Disabled (Default)", gfxChanged);
+				SelectPreset(en, "Clarity", kClarityPresets[std::clamp(s.clarity, 0, (int)std::size(kClarityPresets) - 1)], gfxChanged);
 				SelectPreset(en, "Depth Of Field", s.depthOfField ? "Enabled" : "Disabled", gfxChanged);
 				SelectPreset(en, "Reflections", s.reflections ? "Enhanced Reflections" : "Normal Reflections", gfxChanged);
 				SelectPreset(en, "Reflection Range", kReflectionRangePresets[std::clamp(s.reflectionRange, 0, (int)std::size(kReflectionRangePresets) - 1)], gfxChanged);
@@ -1068,8 +1065,6 @@ blr
 		const Settings s = GetSettings();
 		SetPacksFromSettings(s, false);
 		ApplyPackOptions(s, nullptr);
-		// the Clarity preset runs as its own effect (see ClarityEffect): it reads the number from the settings
-		pce::Reshade::ClarityEffect::Get().SetPreset(s.clarity);
 	}
 
 	bool ApplyLive()
