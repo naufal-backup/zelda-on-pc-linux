@@ -957,17 +957,49 @@ blr
 	const std::vector<ResolutionOption>& GetResolutionOptions(int aspect)
 	{
 		// (resolutions the community graphics pack has for each aspect ratio)
+		// 16:9 (1280 x 720 stays the first entry: the settings store the index of this list)
+		// 16:9 (1280 x 720 stays first: the settings store the index into this list)
 		static const std::vector<ResolutionOption> r16_9 = {
-			{1280, 720, "1280 x 720"}, {1920, 1080, "1920 x 1080"}, {2560, 1440, "2560 x 1440"}, {3200, 1800, "3200 x 1800"}, {3840, 2160, "3840 x 2160"},
+			{1280, 720, "1280 x 720 (HD, default)"},
+			{1920, 1080, "1920 x 1080 (Full HD)"},
+			{2560, 1440, "2560 x 1440 (QHD)"},
+			{3200, 1800, "3200 x 1800"},
+			{3840, 2160, "3840 x 2160 (4K)"},
+			{5120, 2880, "5120 x 2880 (5K)"},
+			{7680, 4320, "7680 x 4320 (8K)"},
+			{10240, 5760, "10240 x 5760 (10K)"},
+			{640, 360, "640 x 360 (smallest)"},
+			{960, 540, "960 x 540"},
+			{1600, 900, "1600 x 900"},
 		};
+		// 16:10 (1280 x 800 stays first, see above)
 		static const std::vector<ResolutionOption> r16_10 = {
-			{1280, 800, "1280 x 800"}, {1920, 1200, "1920 x 1200"}, {2560, 1600, "2560 x 1600"}, {2880, 1800, "2880 x 1800"}, {3840, 2400, "3840 x 2400"},
+			{1280, 800, "1280 x 800 (default)"},
+			{1920, 1200, "1920 x 1200"},
+			{2560, 1600, "2560 x 1600 (QHD)"},
+			{2880, 1800, "2880 x 1800"},
+			{3840, 2400, "3840 x 2400 (4K)"},
+			{5120, 3200, "5120 x 3200 (5K)"},
+			{1440, 900, "1440 x 900"},
+			{1680, 1050, "1680 x 1050"},
 		};
+		// 21:9 (1720 x 720 stays first, see above)
 		static const std::vector<ResolutionOption> r21_9 = {
-			{1720, 720, "1720 x 720"}, {2560, 1080, "2560 x 1080"}, {3440, 1440, "3440 x 1440"}, {4300, 1800, "4300 x 1800"}, {5120, 2160, "5120 x 2160"},
+			{1720, 720, "1720 x 720 (default)"},
+			{2560, 1080, "2560 x 1080"},
+			{3440, 1440, "3440 x 1440"},
+			{3840, 1600, "3840 x 1600"},
+			{4300, 1800, "4300 x 1800"},
+			{5120, 2160, "5120 x 2160"},
+			{6880, 2880, "6880 x 2880"},
+			{2100, 900, "2100 x 900"},
 		};
+		// 32:9 (3840 x 1080 stays first; the old list repeated the same size twice, now it does not)
 		static const std::vector<ResolutionOption> r32_9 = {
-			{3840, 1080, "3840 x 1080 (smallest)"}, {3840, 1080, "3840 x 1080"}, {5120, 1440, "5120 x 1440"}, {5120, 1440, "5120 x 1440 (largest below 2160)"}, {7680, 2160, "7680 x 2160"},
+			{3840, 1080, "3840 x 1080 (default)"},
+			{5120, 1440, "5120 x 1440"},
+			{7680, 2160, "7680 x 2160"},
+			{10240, 2880, "10240 x 2880 (largest)"},
 		};
 		switch (aspect)
 		{
