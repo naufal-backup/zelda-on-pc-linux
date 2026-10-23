@@ -601,7 +601,7 @@ blr
 
 	// Select the size of the picture of the game for the FSR mode (exact name, the sizes of two modes can
 	// be the same on small screens).
-	static void SelectFsrResolution(const std::shared_ptr<GraphicPack2>& gfx, int mode, bool& changed)
+	static void SelectFsrResolution(const std::shared_ptr<GraphicPack2>& gfx, int mode, bool* changed)
 	{
 		int w = 0, h = 0;
 		if (!FsrInternalSize(mode, w, h))
