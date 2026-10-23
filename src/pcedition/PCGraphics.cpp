@@ -921,6 +921,8 @@ blr
 		return PacksDir() / "BotWPCEdition";
 	}
 
+	} // namespace
+
 	namespace
 	{
 		std::atomic<int> sDisplayModeApplied{1};
@@ -1097,7 +1099,6 @@ blr
 		if (auto pce = FindPack("BotWPCEdition"))
 			pce->SetEnabled(true);
 	}
-	} // namespace
 
 	void ApplySettingsToPacks()
 	{
