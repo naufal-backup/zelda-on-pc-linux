@@ -536,6 +536,14 @@ blr
 )";
 	}
 
+	std::string PresetDisplayName(const std::string& preset)
+	{
+		for (const auto& r : kPresetRenames)
+			if (preset == r.from)
+				return r.to;
+		return preset;
+	}
+
 	// The presets of a pack, with the names of the pack (the settings show the rewritten ones). When a list of presets
 	// is given, only those are offered (the packs have many more than the settings show).
 	const std::vector<std::pair<std::string, std::string>>& PackPresetChoices(const std::string& pack, const std::string& category, const char* const* presets)
